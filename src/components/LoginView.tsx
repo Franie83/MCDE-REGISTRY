@@ -6,6 +6,8 @@
  */
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
+import { RegisterView } from './RegisterView';
 import { roleLabel, roleBadgeClasses, UserRole } from '../utils/auth';
 import { Lock, User, Eye, EyeOff, ShieldCheck, Loader2, AlertCircle, Building2, KeyRound } from 'lucide-react';
 
@@ -26,6 +28,14 @@ export const LoginView: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingApproval, setPendingApproval] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+  const [branding, setBranding] = useState<{ logoUrl?: string | null } | null>(null);
+
+  React.useEffect(() => {
+    // PUBLIC_BRANDING_LOGIN
+    api.publicBranding().then(setBranding).catch(() => setBranding(null));
+  }, []);
 
   // Dev-mode detection that works in every environment.
   const isDev =
@@ -43,8 +53,16 @@ export const LoginView: React.FC = () => {
     setError(null);
     try {
       await login(username.trim(), password);
+      setPendingApproval(false);
     } catch (err: any) {
-      setError(err?.message || 'Login failed. Check your credentials.');
+      const msg: string = err?.message || 'Login failed. Check your credentials.';
+      // PENDING_STYLING: detect the pending-approval message from the backend
+      if (/awaiting approval/i.test(msg)) {
+        setPendingApproval(true);
+      } else {
+        setPendingApproval(false);
+      }
+      setError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -64,13 +82,26 @@ export const LoginView: React.FC = () => {
     }
   };
 
+  // REGISTER_VIEW: if the user opened the register link, show that view instead
+  if (showRegister) {
+    return <RegisterView onBackToLogin={() => setShowRegister(false)} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-800 text-white mb-3 shadow-md">
-            <ShieldCheck className="w-7 h-7" />
-          </div>
+          {branding?.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt="Ministry Seal"
+              className="inline-block w-14 h-14 rounded-full object-contain bg-white border border-slate-200 mb-3 shadow-md"
+            />
+          ) : (
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-800 text-white mb-3 shadow-md">
+              <ShieldCheck className="w-7 h-7" />
+            </div>
+          )}
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">Edo State MOCDE Registry</h1>
           <p className="text-xs text-slate-500 mt-1">Ministry of Communication &amp; Digital Economy</p>
           <p className="text-[11px] text-slate-400 mt-0.5 font-mono">Central Correspondence &amp; Document Registry</p>
@@ -87,8 +118,20 @@ export const LoginView: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-800 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div
+                className={
+                  'p-3 rounded-lg text-xs flex items-start gap-2 border ' +
+                  (pendingApproval
+                    ? 'bg-amber-50 border-amber-200 text-amber-900'
+                    : 'bg-red-50 border-red-200 text-red-800')
+                }
+              >
+                <AlertCircle
+                  className={
+                    'w-4 h-4 shrink-0 mt-0.5 ' +
+                    (pendingApproval ? 'text-amber-600' : 'text-red-600')
+                  }
+                />
                 <span>{error}</span>
               </div>
             )}
@@ -181,6 +224,16 @@ export const LoginView: React.FC = () => {
         </div>
 
         <div className="text-center mt-6 text-[11px] text-slate-400">
+          <p className="mt-0.5 mb-3">
+            Don&apos;t have an account?{' '}
+            <button
+              type="button"
+              onClick={() => setShowRegister(true)}
+              className="font-semibold text-emerald-800 hover:text-emerald-950 underline"
+            >
+              Create Account
+            </button>
+          </p>
           <p className="flex items-center justify-center gap-1.5">
             <Building2 className="w-3 h-3" />
             <span>Edo State Government of Nigeria - Benin City</span>

@@ -188,11 +188,11 @@ def action_list_users():
         print("  (no users yet - run option 4 to seed default users)")
         return
     print(f"  {'ID':>3}  {'Username':<16} {'Role':<12} {'Active':<7} "
-          f"{'Directorate':<32} Full name")
+          f"{'Department':<32} Full name")
     print("  " + "-" * 110)
     for r in rows:
         active = "yes" if r["is_active"] else "no"
-        direc = r["directorate"] or "-"
+        direc = r["department"] or "-"
         print(f"  {r['id']:>3}  {r['username']:<16} {r['role']:<12} "
               f"{active:<7} {direc:<32} {r['full_name']}")
     hr()
@@ -206,7 +206,7 @@ def action_create_user():
     full_name = input("Full name: ").strip()
     print("Role options: super_admin, hc, ps, director, staff")
     role = input("Role: ").strip().lower()
-    directorate = input("Directorate (only for 'director' role, else blank): ").strip() or None
+    department = input("Department (only for 'director' role, else blank): ").strip() or None
     email = input("Email (optional): ").strip() or None
     password = input(f"Password (blank = {seed_data.SEED_PASSWORD}): ").strip() or None
 
@@ -216,7 +216,7 @@ def action_create_user():
             full_name=full_name,
             role=role,
             email=email,
-            directorate=directorate,
+            department=department,
             password=password,
         )
     except ValueError as e:

@@ -226,7 +226,7 @@ export const defaultEdoStateLogo =
 export const defaultCmsSettings: CmsSettings = {
   stateName: 'Edo State Government of Nigeria',
   mdaName: 'Ministry of Communication and Digital Economy',
-  department: 'Central Registry & Archival Records Directorate',
+  department: 'Central Registry & Archival Records Department',
   address: 'Block C, Edo State Secretariat Complex, Sapele Road, Benin City, Edo State',
   logoUrl: defaultEdoStateLogo,
   inwardPrefix: 'EDSG/MOCDE/INW',
@@ -237,7 +237,7 @@ export const defaultCmsSettings: CmsSettings = {
   activeOfficerName: 'Osamwonyi E.',
   activeOfficerRole: 'Central Registry Supervisor',
   bannerNotice: 'Mandatory Compliance: All inter-departmental letters and memos must be recorded in the digital registry with assigned folder jackets.',
-  directorates: [
+  departments: [
     'ICT Infrastructure & Broadband',
     'Digital Economy & Innovation',
     'e-Governance & Software Solutions',

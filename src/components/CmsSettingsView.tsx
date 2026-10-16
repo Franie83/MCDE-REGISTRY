@@ -29,7 +29,7 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
   onSaveSettings,
 }) => {
   const [formData, setFormData] = useState<CmsSettings>(settings);
-  const [newDirectorate, setNewDirectorate] = useState<string>('');
+  const [newDepartment, setNewDepartment] = useState<string>('');
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const stampInputRef = useRef<HTMLInputElement | null>(null);
@@ -71,23 +71,23 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
     }));
   };
 
-  const handleAddDirectorate = () => {
-    if (!newDirectorate.trim()) return;
-    if (formData.directorates.includes(newDirectorate.trim())) {
-      alert('This directorate is already registered.');
+  const handleAddDepartment = () => {
+    if (!newDepartment.trim()) return;
+    if (formData.departments.includes(newDepartment.trim())) {
+      alert('This department is already registered.');
       return;
     }
     setFormData(prev => ({
       ...prev,
-      directorates: [...prev.directorates, newDirectorate.trim()]
+      departments: [...prev.departments, newDepartment.trim()]
     }));
-    setNewDirectorate('');
+    setNewDepartment('');
   };
 
-  const handleRemoveDirectorate = (name: string) => {
+  const handleRemoveDepartment = (name: string) => {
     setFormData(prev => ({
       ...prev,
-      directorates: prev.directorates.filter(d => d !== name)
+      departments: prev.departments.filter(d => d !== name)
     }));
   };
 
@@ -123,7 +123,7 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
               <span>Ministry Content & Branding Manager</span>
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Customize the Ministry Logo, government title, office address, active officer identity, and directorates directly without modifying any code.
+              Customize the Ministry Logo, government title, office address, active officer identity, and departments directly without modifying any code.
             </p>
           </div>
 
@@ -314,7 +314,7 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Department / Directorate Unit</label>
+              <label className="block font-semibold text-slate-700 mb-1">Department / Unit</label>
               <input
                 type="text"
                 value={formData.department}
@@ -402,15 +402,15 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
           </div>
         </div>
 
-        {/* Section 4: Directorates & Units List Manager */}
+        {/* Section 4: Departments & Units List Manager */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
           <div className="border-b border-slate-200 pb-3">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <FileText className="w-4 h-4 text-emerald-800" />
-              <span>Ministerial Directorates & Units</span>
+              <span>Ministerial Departments & Units</span>
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Manage the directorates available in dropdowns throughout the correspondence and folder workflows.
+              Manage the departments available in dropdowns throughout the correspondence and folder workflows.
             </p>
           </div>
 
@@ -418,23 +418,23 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                placeholder="Enter new directorate name..."
-                value={newDirectorate}
-                onChange={(e) => setNewDirectorate(e.target.value)}
+                placeholder="Enter new department name..."
+                value={newDepartment}
+                onChange={(e) => setNewDepartment(e.target.value)}
                 className="text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white flex-1 focus:outline-hidden focus:ring-1 focus:ring-emerald-600"
               />
               <button
                 type="button"
-                onClick={handleAddDirectorate}
+                onClick={handleAddDepartment}
                 className="px-3.5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-1 shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Add Directorate</span>
+                <span>Add Department</span>
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
-              {formData.directorates.map((dept, idx) => (
+              {formData.departments.map((dept, idx) => (
                 <div
                   key={idx}
                   className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-2"
@@ -442,9 +442,9 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
                   <span className="font-medium text-slate-800 truncate">{dept}</span>
                   <button
                     type="button"
-                    onClick={() => handleRemoveDirectorate(dept)}
+                    onClick={() => handleRemoveDepartment(dept)}
                     className="text-slate-400 hover:text-red-600 p-1 transition-colors shrink-0"
-                    title="Remove directorate"
+                    title="Remove department"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

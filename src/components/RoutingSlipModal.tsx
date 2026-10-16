@@ -198,7 +198,7 @@ export const RoutingSlipModal: React.FC<RoutingSlipModalProps> = ({
             <div>
               <p className="font-bold">Action Officer / Director:</p>
               <div className="h-9 border-b border-dashed border-slate-400 mt-2"></div>
-              <p className="text-[10px] text-slate-500 mt-1">Signature, Directorate & Date</p>
+              <p className="text-[10px] text-slate-500 mt-1">Signature, Department & Date</p>
             </div>
           </div>
         </div>

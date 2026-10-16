@@ -18,12 +18,16 @@ interface FolderManagerViewProps {
   folders: ArchiveFolder[];
   onSaveFolders: (folders: ArchiveFolder[]) => void;
   onPreviewFile: (file: FolderFile) => void;
+  /** SMART_DELETE: called when the user deletes a [Correspondence] row.
+   *  App.tsx cascades this to also remove the letter from All Records. */
+  onDeleteCorrespondence?: (correspondenceId: string) => Promise<void>;
 }
 
 export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
   folders,
   onSaveFolders,
   onPreviewFile,
+  onDeleteCorrespondence,
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFolderId, setSelectedFolderId] = useState<string>(folders[0]?.id || '');
@@ -39,35 +43,35 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
   const [newFolderColor, setNewFolderColor] = useState('emerald');
   const [folderFormError, setFolderFormError] = useState('');
 
-  // Directorates + storage locations from CMS
-  const [directorates, setDirectorates] = useState<string[]>([]);
+  // Departments + storage locations from CMS
+  const [departments, setDepartments] = useState<string[]>([]);
   const [storageLocations, setStorageLocations] = useState<string[]>([]);
-  const [directorateModalOpen, setDirectorateModalOpen] = useState(false);
+  const [departmentModalOpen, setDepartmentModalOpen] = useState(false);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [cmsSettings, setCmsSettings] = useState<CmsSettings | null>(null);
   const { user } = useAuth();
-  const canManageDirectorates = can(user, 'editCms');
+  const canManageDepartments = can(user, 'editCms');
 
   useEffect(() => {
     api.getCms()
       .then((cms) => {
         setCmsSettings(cms as CmsSettings);
-        setDirectorates(Array.isArray(cms?.directorates) ? cms.directorates : []);
+        setDepartments(Array.isArray(cms?.departments) ? cms.departments : []);
         setStorageLocations(Array.isArray(cms?.storageLocations) ? cms.storageLocations : []);
       })
       .catch(() => {
-        setDirectorates([]);
+        setDepartments([]);
         setStorageLocations([]);
       });
   }, []);
 
-  const saveCmsList = async (field: 'directorates' | 'storageLocations', items: string[]) => {
+  const saveCmsList = async (field: 'departments' | 'storageLocations', items: string[]) => {
     if (!cmsSettings) return;
     const updated = { ...cmsSettings, [field]: items } as CmsSettings;
     const saved = await api.updateCms(updated);
     const merged = { ...cmsSettings, ...(saved as any), [field]: items } as CmsSettings;
     setCmsSettings(merged);
-    if (field === 'directorates') setDirectorates(items);
+    if (field === 'departments') setDepartments(items);
     if (field === 'storageLocations') setStorageLocations(items);
   };
 
@@ -142,7 +146,7 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
       id: 'folder-' + Date.now(),
       name: newFolderName.trim(),
       folderCode: newFolderCode.trim().toUpperCase(),
-      department: newFolderDept || directorates[0] || '',
+      department: newFolderDept || departments[0] || '',
       description: newFolderDesc.trim(),
       physicalLocation: newFolderLocation.trim(),
       colorTag: newFolderColor,
@@ -185,9 +189,30 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
   };
 
   const handleDeleteFileFromFolder = async (folderId: string, fileId: string, fileName: string) => {
-    if (!window.confirm('Remove "' + fileName + '" from this file?\n\nThis does not delete the parent letter.')) return;
     const folder = folders.find((f) => f.id === folderId);
     if (!folder) return;
+    const targetFile = folder.files.find((file) => file.id === fileId);
+
+    // SMART_DELETE: if this row is a correspondence, delete the whole letter
+    if (targetFile?.correspondenceId && onDeleteCorrespondence) {
+      const ref = targetFile.correspondenceRef || targetFile.correspondenceId;
+      const ok = window.confirm(
+        'Delete correspondence ' + ref + '?\n\n' +
+        'This removes the letter from All Records along with all its ' +
+        'attachments. This cannot be undone.',
+      );
+      if (!ok) return;
+      try {
+        await onDeleteCorrespondence(targetFile.correspondenceId);
+        return;
+      } catch (err: any) {
+        window.alert(err?.message || 'Could not delete correspondence');
+        return;
+      }
+    }
+
+    // Otherwise: remove just the row (an orphan file with no parent letter)
+    if (!window.confirm('Remove "' + fileName + '" from this file?')) return;
     const updatedFiles = folder.files.filter((file) => file.id !== fileId);
     try {
       await api.updateFolder(folderId, { ...folder, files: updatedFiles });
@@ -249,8 +274,8 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
               onChange={(e) => setSelectedDeptFilter(e.target.value)}
               className="w-full text-xs px-3 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-400"
             >
-              <option value="all">All Directorates ({folders.length} Files)</option>
-              {directorates.map((dept, i) => (
+              <option value="all">All Departments ({folders.length} Files)</option>
+              {departments.map((dept, i) => (
                 <option key={i} value={dept}>{dept}</option>
               ))}
             </select>
@@ -260,7 +285,7 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pt-3 mt-3 border-t border-slate-100 font-mono">
           <span>Total Files: <strong className="text-slate-900 tabular-nums">{folders.length}</strong></span>
           <span>?</span>
-          <span>Total Archived Documents: <strong className="text-slate-900 tabular-nums">{totalDocumentsCount}</strong></span>
+          <span>Correspondences Filed: <strong className="text-slate-900 tabular-nums">{totalDocumentsCount}</strong></span>
           <span>?</span>
           <span>Storage Index: <strong className="text-slate-900 tabular-nums">{formatFileSize(totalBytes)}</strong></span>
         </div>
@@ -488,7 +513,7 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
                             <Download className="w-3.5 h-3.5" />
                           </button>
 
-                          {canManageDirectorates && (
+                          {canManageDepartments && (
                             <button
                               onClick={() => handleDeleteFileFromFolder(currentFolder.id, file.id, file.name)}
                               className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
@@ -510,12 +535,12 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
 
       {cmsSettings && (
         <StringListManagerModal
-          isOpen={directorateModalOpen}
-          onClose={() => setDirectorateModalOpen(false)}
-          title="Manage Directorates"
+          isOpen={departmentModalOpen}
+          onClose={() => setDepartmentModalOpen(false)}
+          title="Manage Departments"
           description="Applies to every dropdown across the registry."
-          items={directorates}
-          onSave={(items) => saveCmsList('directorates', items)}
+          items={departments}
+          onSave={(items) => saveCmsList('departments', items)}
         />
       )}
 
@@ -582,14 +607,14 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="block font-semibold text-slate-700">Directorate / Department</label>
-                    {canManageDirectorates && (
+                    <label className="block font-semibold text-slate-700">Department</label>
+                    {canManageDepartments && (
                       <button
                         type="button"
-                        onClick={() => setDirectorateModalOpen(true)}
+                        onClick={() => setDepartmentModalOpen(true)}
                         className="text-[10px] font-semibold text-emerald-800 hover:text-emerald-950 underline"
                       >
-                        + Manage directorates
+                        + Manage departments
                       </button>
                     )}
                   </div>
@@ -598,8 +623,8 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
                     onChange={(e) => setNewFolderDept(e.target.value)}
                     className="w-full text-xs px-2.5 py-2 border border-slate-300 rounded-lg bg-white focus:outline-hidden focus:ring-1 focus:ring-slate-400"
                   >
-                    <option value="">? Select directorate ?</option>
-                    {directorates.map((d, i) => (
+                    <option value="">? Select department ?</option>
+                    {departments.map((d, i) => (
                       <option key={i} value={d}>{d}</option>
                     ))}
                   </select>
@@ -609,7 +634,7 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="block font-semibold text-slate-700">Physical Storage Location in Registry</label>
-                  {canManageDirectorates && (
+                  {canManageDepartments && (
                     <button
                       type="button"
                       onClick={() => setLocationModalOpen(true)}
@@ -669,3 +694,5 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
 };
 
 export default FolderManagerView;
+
+// SMART_DELETE

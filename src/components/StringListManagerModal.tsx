@@ -1,7 +1,7 @@
 /**
  * StringListManagerModal - generic add/rename/delete modal for a list of strings.
  *
- * Used by the directorate manager, storage-location manager, category manager,
+ * Used by the department manager, storage-location manager, category manager,
  * and officer manager. The list is owned by the caller; this modal just edits
  * a copy and calls onSaved() with the result.
  */

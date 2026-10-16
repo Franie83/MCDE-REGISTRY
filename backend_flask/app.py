@@ -98,7 +98,7 @@ CORS(
 )
 
 db = SQLAlchemy(app)
-DirectorateList = JSONB if (JSONB and not USING_SQLITE) else JSONType
+DepartmentList = JSONB if (JSONB and not USING_SQLITE) else JSONType
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -112,7 +112,7 @@ class User(db.Model):
     email = db.Column(db.String(160))
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(32), nullable=False, default="staff")
-    directorate = db.Column(db.String(160))
+    department = db.Column(db.String(160))
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     must_change_password = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=_now_utc, nullable=False)
@@ -125,7 +125,7 @@ class User(db.Model):
             "fullName": self.full_name,
             "email": self.email,
             "role": self.role,
-            "directorate": self.directorate,
+            "department": self.department,
             "isActive": self.is_active,
             "mustChangePassword": self.must_change_password,
             "createdAt": self.created_at.isoformat() if self.created_at else None,
@@ -307,10 +307,10 @@ class CmsSettings(db.Model):
     active_officer_name = db.Column(db.String(160))
     active_officer_role = db.Column(db.String(160))
     banner_notice = db.Column(db.Text)
-    directorates = db.Column(DirectorateList, default=list)
-    storage_locations = db.Column(DirectorateList, default=list)
-    categories = db.Column(DirectorateList, default=list)
-    officers = db.Column(DirectorateList, default=list)
+    departments = db.Column(DepartmentList, default=list)
+    storage_locations = db.Column(DepartmentList, default=list)
+    categories = db.Column(DepartmentList, default=list)
+    officers = db.Column(DepartmentList, default=list)
     updated_at = db.Column(db.DateTime, default=_now_utc, onupdate=_now_utc)
 
     def to_dict(self):
@@ -324,7 +324,7 @@ class CmsSettings(db.Model):
             "activeOfficerName": self.active_officer_name,
             "activeOfficerRole": self.active_officer_role,
             "bannerNotice": self.banner_notice,
-            "directorates": self.directorates or [],
+            "departments": self.departments or [],
             "storageLocations": self.storage_locations or [],
             "categories": self.categories or [],
             "officers": self.officers or [],
@@ -440,7 +440,7 @@ def init_db():
             db.session.add(User(
                 username=spec["username"], full_name=spec["full_name"],
                 email=spec["email"], role=spec["role"],
-                directorate=spec["directorate"],
+                department=spec["department"],
                 password_hash=hash_password(SEED_PASSWORD),
                 is_active=True, must_change_password=getattr(seed_data, "MUST_CHANGE_PASSWORD", False),
             ))
@@ -458,7 +458,7 @@ def init_db():
             active_officer_name=cms["active_officer_name"],
             active_officer_role=cms["active_officer_role"],
             banner_notice=cms["banner_notice"],
-            directorates=list(cms["directorates"]),
+            departments=list(cms.get("departments", cms.get("departments", []))),
             storage_locations=list(cms.get("storage_locations", [])),
             categories=list(cms.get("categories", [])),
             officers=list(cms.get("officers", [])),
@@ -505,12 +505,75 @@ def login():
         return jsonify({"error": "username and password required"}), 400
 
     user = User.query.filter(db.func.lower(User.username) == username).first()
-    if not user or not user.is_active or not verify_password(password, user.password_hash):
+
+    # PENDING_APPROVAL: distinguish "pending approval" from "wrong credentials"
+    if user and verify_password(password, user.password_hash):
+        if not user.is_active:
+            return jsonify({
+                "error": "Your account is awaiting approval by the Registry Administrator. Please try again later.",
+                "code": "PENDING_APPROVAL",
+            }), 403
+    else:
         return jsonify({"error": "Invalid credentials"}), 401
 
     user.last_login = _now_utc()
     db.session.commit()
     return jsonify({"token": issue_token(user), "user": user.to_dict()})
+
+
+@app.post("/api/auth/register")
+def register():
+    """Public self-registration. Account starts INACTIVE and must be
+    approved by a super_admin before the user can sign in."""
+    data = request.get_json(silent=True) or {}
+    username = (data.get("username") or "").strip().lower()
+    full_name = (data.get("fullName") or "").strip()
+    email = (data.get("email") or "").strip() or None
+    password = data.get("password") or ""
+    department = (data.get("department") or data.get("department") or "").strip() or None
+
+    if not username or not full_name or not password:
+        return jsonify({"error": "username, fullName and password are required"}), 400
+    if len(password) < 8:
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+    if User.query.filter(db.func.lower(User.username) == username).first():
+        return jsonify({"error": "That username is already taken"}), 409
+
+    user = User(
+        username=username,
+        full_name=full_name,
+        email=email,
+        role="staff",                     # new self-registrations are always staff
+        department=department,
+        is_active=False,                  # must be approved by super_admin
+        must_change_password=False,
+        password_hash=hash_password(password),
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    # Audit it so the super admin sees the pending request
+    try:
+        db.session.add(AuditLog(
+            action="USER_REGISTERED",
+            actor_user_id=None,
+            actor_name=full_name,
+            actor_role="(pending)",
+            entity_type="cms",
+            entity_id=str(user.id),
+            entity_ref=username,
+            title="New self-registration pending approval",
+            details=f"{full_name} ({username}) registered and awaits approval.",
+            ip_address=request.remote_addr,
+        ))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    return jsonify({
+        "message": "Account created. Awaiting approval by the Registry Administrator.",
+        "user": user.to_dict(),
+    }), 201
 
 
 @app.get("/api/auth/me")
@@ -567,7 +630,7 @@ def create_user():
     user = User(
         username=username, full_name=full_name,
         email=(data.get("email") or "").strip() or None, role=role,
-        directorate=(data.get("directorate") or "").strip() or None,
+        department=(data.get("department") or data.get("department") or "").strip() or None,
         is_active=bool(data.get("isActive", True)), must_change_password=True,
         password_hash=hash_password(password),
     )
@@ -589,8 +652,9 @@ def update_user(user_id):
         if data["role"] not in VALID_ROLES:
             return jsonify({"error": "Invalid role"}), 400
         user.role = data["role"]
-    if "directorate" in data:
-        user.directorate = (data["directorate"] or "").strip() or None
+    if "department" in data or "department" in data:
+        val = data.get("department") if "department" in data else data.get("department")
+        user.department = (val or "").strip() or None
     if "isActive" in data: user.is_active = bool(data["isActive"])
     if data.get("password"):
         user.password_hash = hash_password(data["password"])
@@ -699,7 +763,7 @@ def _user_can_edit(record):
         return True
     if u.role == "director":
         return (record.created_by_user_id == u.id
-                or (u.directorate and record.category == u.directorate))
+                or (u.department and record.category == u.department))
     if u.role == "staff":
         return record.created_by_user_id == u.id
     return False
@@ -905,7 +969,7 @@ def create_folder():
             uploaded_by_user_id=g.current_user.id,
         ))
     audit("CREATE_FOLDER", "folder", folder.id, folder.folder_code, folder.name,
-          f"Created new archival folder in {folder.department or 'unassigned directorate'}.")
+          f"Created new archival folder in {folder.department or 'unassigned department'}.")
     db.session.commit()
     return jsonify({"message": "Folder created", "folder": folder.to_dict()}), 201
 
@@ -1022,11 +1086,34 @@ def _get_or_create_cms():
             active_officer_name=cms["active_officer_name"],
             active_officer_role=cms["active_officer_role"],
             banner_notice=cms["banner_notice"],
-            directorates=list(cms["directorates"]),
+            departments=list(cms.get("departments", cms.get("departments", []))),
         )
         db.session.add(row)
         db.session.commit()
     return row
+
+
+@app.get("/api/public/branding")
+def public_branding():
+    """Public branding for login/register screens. No auth required."""
+    row = CmsSettings.query.first()
+    if not row:
+        return jsonify({"logoUrl": None, "mdaName": None, "stateName": None, "address": None})
+    return jsonify({
+        "logoUrl": row.logo_url,
+        "mdaName": row.mda_name,
+        "stateName": row.state_name,
+        "address": row.address,
+    })
+
+
+@app.get("/api/public/departments")
+def public_departments():
+    """Public list of department names for the registration form. No auth required."""
+    row = CmsSettings.query.first()
+    if not row or not row.departments:
+        return jsonify({"departments": []})
+    return jsonify({"departments": list(row.departments)})
 
 
 @app.get("/api/cms")
@@ -1047,7 +1134,7 @@ def update_cms():
         "currentYear": "current_year", "officialEmail": "official_email",
         "officialPhone": "official_phone", "activeOfficerName": "active_officer_name",
         "activeOfficerRole": "active_officer_role", "bannerNotice": "banner_notice",
-        "directorates": "directorates",
+        "departments": "departments",
         "storageLocations": "storage_locations",
         "categories": "categories",
         "officers": "officers",
@@ -1057,7 +1144,7 @@ def update_cms():
             setattr(row, col, data[js_key])
     audit("UPDATE_CMS_SETTINGS", "cms", "cms-global", row.mda_name,
           "Ministry CMS settings updated",
-          "Updated Ministry branding, addresses, prefixes, or directorates.")
+          "Updated Ministry branding, addresses, prefixes, or departments.")
     db.session.commit()
     return jsonify({"message": "CMS settings updated", "settings": row.to_dict()})
 

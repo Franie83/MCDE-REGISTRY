@@ -52,7 +52,7 @@ export const StatsBar: React.FC<StatsBarProps> = ({ records, onFilterType }) => 
       </div>
 
       <div className="p-2 border-l border-slate-100">
-        <span className="block text-xs font-medium text-slate-500 mb-1">Attached Documents</span>
+        <span className="block text-xs font-medium text-slate-500 mb-1">Files Across Letters</span>
         <span className="text-2xl font-bold text-slate-900 font-mono tabular-nums">{totalDocsCount}</span>
         <span className="block text-[11px] text-slate-400 mt-0.5">Archived attachments</span>
       </div>

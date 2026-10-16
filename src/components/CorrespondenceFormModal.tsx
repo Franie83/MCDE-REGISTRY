@@ -42,7 +42,7 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
   const [recipient, setRecipient] = useState<string>('');
   const [letterBody, setLetterBody] = useState<string>('');
   const [signatory, setSignatory] = useState<string>('');
-  const [directorates, setDirectorates] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
   const [customRecipient, setCustomRecipient] = useState<string>('');
   const [title, setTitle] = useState<string>('');
 
@@ -82,8 +82,8 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
 
   useEffect(() => {
     api.getCms()
-      .then((cms: any) => setDirectorates(Array.isArray(cms?.directorates) ? cms.directorates : []))
-      .catch(() => setDirectorates([]));
+      .then((cms: any) => setDepartments(Array.isArray(cms?.departments) ? cms.departments : []))
+      .catch(() => setDepartments([]));
   }, []);
 
   useEffect(() => {
@@ -474,7 +474,7 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
                   <input
                     ref={folderSearchInputRef}
                     type="text"
-                    placeholder="Search files by name, ref code, or directorate..."
+                    placeholder="Search files by name, ref code, or department..."
                     value={folderSearchQuery}
                     onChange={(e) => { setFolderSearchQuery(e.target.value); setIsFolderPickerOpen(true); }}
                     onFocus={() => setIsFolderPickerOpen(true)}
@@ -603,7 +603,7 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
               >
                 <option value="The Honourable Commissioner">The Honourable Commissioner</option>
                 <option value="The Permanent Secretary">The Permanent Secretary</option>
-                {directorates.map((d) => (
+                {departments.map((d) => (
                   <option key={d} value={'Director, ' + d}>{'Director, ' + d}</option>
                 ))}
                 <option value="Other">Other (specify)</option>

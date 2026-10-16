@@ -205,6 +205,24 @@ const AppShell: React.FC = () => {
     try {
       await api.deleteCorrespondence(id);
       setRecords((prev) => prev.filter((r) => r.id !== id));
+
+      // CASCADE_DELETE_FOLDER_ROWS: also remove any folder rows that reference
+      // this correspondence, so the Files & Documents view stays in sync.
+      const affectedFolders = folders.filter((f) =>
+        f.files.some((file) => file.correspondenceId === id),
+      );
+      for (const folder of affectedFolders) {
+        const newFiles = folder.files.filter((file) => file.correspondenceId !== id);
+        try {
+          const updated = await api.updateFolder(folder.id, { ...folder, files: newFiles });
+          setFolders((prev) =>
+            prev.map((f) => (f.id === folder.id ? (updated as ArchiveFolder) : f)),
+          );
+        } catch (err: any) {
+          console.warn('Cascade folder update failed for', folder.id, err);
+        }
+      }
+
       showToast('Removed ' + toDelete.registryNo);
       if (can(user, 'viewAudit')) {
         try { setAuditLogs(await api.listAudit() as AuditLogEntry[]); } catch {}
@@ -425,6 +443,7 @@ const AppShell: React.FC = () => {
             folders={folders}
             onSaveFolders={handleSaveFolders}
             onPreviewFile={handlePreviewStandaloneFile}
+            onDeleteCorrespondence={handleDeleteRecord}
           />
         ) : showDocketsFallback ? (
           <FileDocketView
@@ -542,3 +561,5 @@ export default function App() {
 }
 
 // STUB_REMOVED_V2
+
+// CASCADE_DELETE_FOLDER_ROWS

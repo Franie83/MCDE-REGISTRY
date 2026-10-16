@@ -22,7 +22,7 @@ interface FormState {
   fullName: string;
   email: string;
   role: UserRole;
-  directorate: string;
+  department: string;
   isActive: boolean;
   password: string;
 }
@@ -32,7 +32,7 @@ const EMPTY_FORM: FormState = {
   fullName: '',
   email: '',
   role: 'staff',
-  directorate: '',
+  department: '',
   isActive: true,
   password: '',
 };
@@ -47,7 +47,7 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [directorates, setDirectorates] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -62,18 +62,18 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
     }
   };
 
-  const loadDirectorates = async () => {
+  const loadDepartments = async () => {
     try {
       const cms = await api.getCms();
-      setDirectorates(Array.isArray(cms?.directorates) ? cms.directorates : []);
+      setDepartments(Array.isArray(cms?.departments) ? cms.departments : []);
     } catch {
-      setDirectorates([]);
+      setDepartments([]);
     }
   };
 
   useEffect(() => {
     load();
-    loadDirectorates();
+    loadDepartments();
   }, []);
 
   const filtered = useMemo(() => {
@@ -100,7 +100,7 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
       fullName: u.fullName,
       email: u.email || '',
       role: u.role as UserRole,
-      directorate: u.directorate || '',
+      department: u.department || '',
       isActive: u.isActive,
       password: '',
     });
@@ -118,7 +118,7 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
     if (!form.fullName.trim()) return setFormError('Full name is required');
     if (!form.id && !form.password) return setFormError('Password is required for new users');
     if (form.password && form.password.length < 8) return setFormError('Password must be at least 8 characters');
-    if (form.role === 'director' && !form.directorate.trim()) return setFormError('Director role requires a directorate');
+    if (form.role === 'director' && !form.department.trim()) return setFormError('Director role requires a department');
 
     setSaving(true);
     setFormError(null);
@@ -128,7 +128,7 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
           fullName: form.fullName.trim(),
           email: form.email.trim() || null,
           role: form.role,
-          directorate: form.directorate.trim() || null,
+          department: form.department.trim() || null,
           isActive: form.isActive,
         };
         if (form.password) payload.password = form.password;
@@ -140,7 +140,7 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
           fullName: form.fullName.trim(),
           email: form.email.trim() || undefined,
           role: form.role,
-          directorate: form.directorate.trim() || undefined,
+          department: form.department.trim() || undefined,
           isActive: form.isActive,
           password: form.password,
         } as any);
@@ -163,6 +163,17 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
       await load();
     } catch (err: any) {
       onToast?.(err?.message || 'Reset failed');
+    }
+  };
+
+  const handleApprove = async (u: ApiUser) => {
+    if (!window.confirm('Approve ' + u.username + '? They will be able to sign in immediately.')) return;
+    try {
+      await api.updateUser(u.id, { isActive: true } as any);
+      onToast?.('Approved ' + u.username);
+      await load();
+    } catch (err: any) {
+      onToast?.(err?.message || 'Failed to approve');
     }
   };
 
@@ -196,7 +207,7 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
               <span>User Management</span>
             </h2>
             <p className="text-xs text-slate-600 mt-0.5">
-              Create accounts, assign roles, and set directorate scoping for the Director role.
+              Create accounts, assign roles, and set department scoping for the Director role.
             </p>
           </div>
           <button
@@ -247,7 +258,7 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
                   <th className="py-3 px-4">Username</th>
                   <th className="py-3 px-4">Full Name</th>
                   <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Directorate</th>
+                  <th className="py-3 px-4">Department</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4">Last Login</th>
                   <th className="py-3 px-4 text-right">Actions</th>
@@ -282,7 +293,7 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-slate-600">
-                        {u.directorate || <span className="text-slate-300">-</span>}
+                        {u.department || <span className="text-slate-300">-</span>}
                       </td>
                       <td className="py-3 px-4">
                         {u.isActive ? (
@@ -290,8 +301,8 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
                             <CheckCircle2 className="w-3 h-3" /> Active
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-0.5 rounded text-[10px] font-semibold">
-                            <XCircle className="w-3 h-3" /> Inactive
+                          <span className="inline-flex items-center gap-1 text-amber-800 bg-amber-50 px-2 py-0.5 rounded text-[10px] font-semibold">
+                            <XCircle className="w-3 h-3" /> Pending Approval
                           </span>
                         )}
                       </td>
@@ -300,6 +311,15 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {!u.isActive && (
+                            <button
+                              onClick={() => handleApprove(u)}
+                              className="p-1.5 text-emerald-700 hover:text-emerald-900 rounded-md hover:bg-emerald-50 transition-colors"
+                              title="Approve this account"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button
                             onClick={() => openEdit(u)}
                             className="p-1.5 text-slate-500 hover:text-slate-900 rounded-md hover:bg-slate-100 transition-colors"
@@ -406,16 +426,16 @@ export const UserManagerView: React.FC<Props> = ({ onToast }) => {
                 </div>
                 {form.role === 'director' && (
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">Directorate *</label>
+                    <label className="block font-semibold text-slate-700 mb-1">Department *</label>
                     <div className="relative">
                       <Building2 className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
                       <select
-                        value={form.directorate}
-                        onChange={(e) => setForm({ ...form, directorate: e.target.value })}
+                        value={form.department}
+                        onChange={(e) => setForm({ ...form, department: e.target.value })}
                         className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
                       >
-                        <option value="">-- Select directorate --</option>
-                        {directorates.map((d) => (
+                        <option value="">-- Select department --</option>
+                        {departments.map((d) => (
                           <option key={d} value={d}>{d}</option>
                         ))}
                       </select>

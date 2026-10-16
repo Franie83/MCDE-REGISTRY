@@ -19,7 +19,7 @@ export interface ApiUser {
   fullName: string;
   email: string | null;
   role: 'super_admin' | 'hc' | 'ps' | 'director' | 'staff';
-  directorate: string | null;
+  department: string | null;
   isActive: boolean;
   mustChangePassword: boolean;
   createdAt: string | null;
@@ -125,6 +125,33 @@ export const api = {
     setToken(data.token);
     setStoredUser(data.user);
     return data;
+  },
+
+  async publicDepartments(): Promise<string[]> {
+    const data = await request<{ departments: string[] }>('/api/public/departments');
+    return data.departments || [];
+  },
+
+  async publicBranding(): Promise<{
+    logoUrl?: string | null;
+    mdaName?: string | null;
+    stateName?: string | null;
+    address?: string | null;
+  }> {
+    return await request('/api/public/branding');
+  },
+
+  async register(payload: {
+    username: string;
+    fullName: string;
+    password: string;
+    email?: string;
+    department?: string;
+  }): Promise<{ message: string; user: ApiUser }> {
+    return await request<{ message: string; user: ApiUser }>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
 
   async me(): Promise<ApiUser> {

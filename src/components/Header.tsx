@@ -160,7 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
                         </div>
                         <div className="font-mono text-[10px] text-slate-500 mt-0.5">
                           @{user.username}
-                          {user.directorate && ' . ' + user.directorate}
+                          {user.department && ' . ' + user.department}
                         </div>
                       </div>
                       <button

@@ -23,43 +23,43 @@ SEED_USERS = [
         "full_name": "System Administrator",
         "email": "superadmin@mocde.edostate.gov.ng",
         "role": "super_admin",
-        "directorate": None,
+        "department": None,
     },
     {
         "username": "hc",
         "full_name": "Honourable Commissioner",
         "email": "commissioner@mocde.edostate.gov.ng",
         "role": "hc",
-        "directorate": None,
+        "department": None,
     },
     {
         "username": "ps",
         "full_name": "Permanent Secretary",
         "email": "ps@mocde.edostate.gov.ng",
         "role": "ps",
-        "directorate": None,
+        "department": None,
     },
     {
         "username": "director",
         "full_name": "Director",
         "email": "director@mocde.edostate.gov.ng",
         "role": "director",
-        "directorate": "ICT Infrastructure & Broadband",
+        "department": "ICT Infrastructure & Broadband",
     },
     {
         "username": "staff",
         "full_name": "Registry Staff",
         "email": "staff@mocde.edostate.gov.ng",
         "role": "staff",
-        "directorate": None,
+        "department": None,
     },
 ]
 
 
 # ─────────────────────────────────────────────────────────────────────
-# Default directorates (used by the CMS settings row)
+# Default departments (used by the CMS settings row)
 # ─────────────────────────────────────────────────────────────────────
-SEED_DIRECTORATES = [
+SEED_DEPARTMENTS = [
     "ICT Infrastructure & Broadband",
     "Digital Economy & Innovation",
     "e-Governance & Software Solutions",
@@ -75,7 +75,7 @@ SEED_DIRECTORATES = [
 SEED_CMS = {
     "state_name": "Edo State Government of Nigeria",
     "mda_name": "Ministry of Communication and Digital Economy",
-    "department": "Central Registry & Archival Records Directorate",
+    "department": "Central Registry & Archival Records Department",
     "address": "Block C, Edo State Secretariat Complex, Sapele Road, Benin City, Edo State",
     "inward_prefix": "EDSG/MOCDE/INW",
     "outward_prefix": "EDSG/MOCDE/OUT",
@@ -88,7 +88,7 @@ SEED_CMS = {
         "Mandatory Compliance: All inter-departmental letters and memos must be "
         "recorded in the digital registry with assigned folder jackets."
     ),
-    "directorates": SEED_DIRECTORATES,
+    "departments": SEED_DEPARTMENTS,
     "storage_locations": [
         "Central Registry Cabinet 1, Shelf A",
         "Central Registry Cabinet 1, Shelf B",
@@ -96,7 +96,7 @@ SEED_CMS = {
         "Digital Economy Filing Cabinet 2, Jacket #15",
         "Permanent Secretary Archive Vault, Jacket #02",
         "Administration Registry, Shelf 2, Jacket #03",
-        "ICT Directorate Filing Cabinet, Shelf C",
+        "ICT Department Filing Cabinet, Shelf C",
     ],
     "categories": [
         "Broadband Infrastructure",
@@ -562,7 +562,7 @@ SEED_AUDIT_LOGS = [
     {
         "action": "CREATE_CORRESPONDENCE",
         "actor_name": "Engr. Osas",
-        "actor_role": "Directorate of ICT & e-Governance",
+        "actor_role": "Department of ICT & e-Governance",
         "entity_type": "correspondence",
         "entity_id": "corr-002",
         "entity_ref": "EDSG/MOCDE/OUT/2026/0009",

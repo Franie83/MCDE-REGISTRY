@@ -137,7 +137,7 @@ export interface CmsSettings {
   activeOfficerName: string;
   activeOfficerRole: string;
   bannerNotice: string;
-  directorates: string[];
+  departments: string[];
   stampUrl?: string;             // Official registry stamp image (separate from logo)
   storageLocations?: string[];
   categories?: string[];

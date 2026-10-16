@@ -1,5 +1,5 @@
 /**
- * DirectorateManagerModal - thin wrapper around StringListManagerModal
+ * DepartmentManagerModal - thin wrapper around StringListManagerModal
  * so existing call sites keep working.
  */
 import React from 'react';
@@ -15,7 +15,7 @@ interface Props {
   onToast?: (msg: string) => void;
 }
 
-export const DirectorateManagerModal: React.FC<Props> = ({
+export const DepartmentManagerModal: React.FC<Props> = ({
   isOpen,
   onClose,
   settings,
@@ -23,21 +23,21 @@ export const DirectorateManagerModal: React.FC<Props> = ({
   onToast,
 }) => {
   const handleSave = async (items: string[]) => {
-    const saved = await api.updateCms({ ...settings, directorates: items });
-    onSaved({ ...settings, ...(saved as any), directorates: items });
+    const saved = await api.updateCms({ ...settings, departments: items });
+    onSaved({ ...settings, ...(saved as any), departments: items });
   };
 
   return (
     <StringListManagerModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Manage Directorates"
+      title="Manage Departments"
       description="Applies to every dropdown across the registry."
-      items={Array.isArray(settings.directorates) ? settings.directorates : []}
+      items={Array.isArray(settings.departments) ? settings.departments : []}
       onSave={handleSave}
       onToast={onToast}
     />
   );
 };
 
-export default DirectorateManagerModal;
+export default DepartmentManagerModal;

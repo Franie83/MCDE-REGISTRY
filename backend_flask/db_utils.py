@@ -340,10 +340,10 @@ def reset_users() -> dict:
                 session.execute(text("""
                     INSERT INTO users (
                         username, full_name, email, password_hash,
-                        role, directorate, is_active, must_change_password, created_at
+                        role, department, is_active, must_change_password, created_at
                     ) VALUES (
                         :username, :full_name, :email, :password_hash,
-                        :role, :directorate, 1, 1, :created_at
+                        :role, :department, 1, 1, :created_at
                     )
                 """), {
                     "username": u["username"],
@@ -351,7 +351,7 @@ def reset_users() -> dict:
                     "email": u.get("email"),
                     "password_hash": pwd_hash,
                     "role": u["role"],
-                    "directorate": u.get("directorate"),
+                    "department": u.get("department"),
                     "created_at": _now(),
                 })
                 summary["created"] += 1
@@ -362,10 +362,10 @@ def reset_users() -> dict:
 
 
 def list_users() -> list:
-    """Return all users as a list of dicts (id, username, full_name, role, directorate, is_active, last_login)."""
+    """Return all users as a list of dicts (id, username, full_name, role, department, is_active, last_login)."""
     with SessionLocal() as session:
         rows = session.execute(text("""
-            SELECT id, username, full_name, role, directorate,
+            SELECT id, username, full_name, role, department,
                    is_active, must_change_password, last_login, created_at
             FROM users
             ORDER BY id ASC
@@ -375,7 +375,7 @@ def list_users() -> list:
 
 
 def create_user(username: str, full_name: str, role: str,
-                email: str = None, directorate: str = None,
+                email: str = None, department: str = None,
                 password: str = None, is_active: bool = True) -> dict:
     """Create a single user. Returns {created: bool, id: int, username: str}."""
     from werkzeug.security import generate_password_hash
@@ -401,10 +401,10 @@ def create_user(username: str, full_name: str, role: str,
         session.execute(text("""
             INSERT INTO users (
                 username, full_name, email, password_hash,
-                role, directorate, is_active, must_change_password, created_at
+                role, department, is_active, must_change_password, created_at
             ) VALUES (
                 :username, :full_name, :email, :password_hash,
-                :role, :directorate, :is_active, 1, :created_at
+                :role, :department, :is_active, 1, :created_at
             )
         """), {
             "username": username,
@@ -412,7 +412,7 @@ def create_user(username: str, full_name: str, role: str,
             "email": email,
             "password_hash": pwd_hash,
             "role": role,
-            "directorate": directorate,
+            "department": department,
             "is_active": 1 if is_active else 0,
             "created_at": _now(),
         })
