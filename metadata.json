@@ -1,0 +1,6 @@
+{
+  "name": "MDA Correspondence & Document Management System",
+  "description": "Enterprise document registry and tracking application for Ministries, Departments, and Agencies. Effortlessly record, search, index, and organize incoming and outgoing letters, file folios, and multiple attached documents.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
