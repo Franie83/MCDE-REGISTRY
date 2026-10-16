@@ -160,20 +160,9 @@ const AppShell: React.FC = () => {
             (f) => f.id === targetId || f.folderCode === savedRecord.fileNumber
           );
           if (match) {
-            const letterFile: FolderFile = {
-              id: 'letter-' + savedRecord.id,
-              name: '[Letter] ' + savedRecord.registryNo + ' - ' + savedRecord.title + '.pdf',
-              size: 45000,
-              type: 'application/pdf',
-              uploadedAt: new Date().toISOString(),
-              uploadedBy: 'Registry System',
-              notes: savedRecord.type === 'incoming'
-                ? 'From: ' + (savedRecord.source || 'N/A')
-                : 'To: ' + (savedRecord.target || 'N/A'),
-              correspondenceId: savedRecord.id,
-              correspondenceRef: savedRecord.registryNo,
-              previewContent: savedRecord.letterBody || 'Letter reference ' + savedRecord.registryNo,
-            };
+            // STUB_REMOVED_V2: we no longer generate a fake "[Letter] ... .pdf" placeholder.
+            // Only the real uploaded attachments appear in the folder.
+            
             const attachmentDocuments: FolderFile[] = savedRecord.documents.map((d) => ({
               id: d.id,
               name: d.name,
@@ -187,7 +176,7 @@ const AppShell: React.FC = () => {
               correspondenceId: savedRecord.id,
               correspondenceRef: savedRecord.registryNo,
             }));
-            const newDocuments = [letterFile, ...attachmentDocuments];
+            const newDocuments = [...attachmentDocuments];
             const updatedFile = await api.updateFolder(match.id, {
               ...match,
               files: [...newDocuments, ...match.files],
@@ -546,3 +535,5 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+// STUB_REMOVED_V2

@@ -139,7 +139,14 @@ export const RoutingSlipModal: React.FC<RoutingSlipModalProps> = ({
                   {correspondence.type === 'incoming' ? 'Source (Sender / Originating Body):' : 'Target (Addressee / Recipient):'}
                 </td>
                 <td className="border border-slate-300 p-2 font-semibold text-slate-900">
-                  {correspondence.source || correspondence.target || 'N/A'}
+                  {correspondence.type === 'incoming'
+                    ? (correspondence.source || 'N/A')
+                    : (correspondence.target || 'N/A')}
+                  {correspondence.type === 'incoming' && (correspondence as any).recipient && (
+                    <div className="text-[11px] font-normal text-slate-600 mt-0.5">
+                      Routed to: <span className="font-semibold">{(correspondence as any).recipient}</span>
+                    </div>
+                  )}
                 </td>
               </tr>
               <tr>

@@ -142,6 +142,7 @@ class Correspondence(db.Model):
     date_on_correspondence = db.Column(db.String(16), nullable=False)
     source = db.Column(db.Text)
     target = db.Column(db.Text)
+    recipient = db.Column(db.Text)
     title = db.Column(db.Text, nullable=False)
     file_number = db.Column(db.String(120), nullable=False, index=True)
     folder_id = db.Column(db.String(64))
@@ -168,7 +169,7 @@ class Correspondence(db.Model):
             "id": self.id, "registryNo": self.registry_no, "type": self.type,
             "recordDate": self.record_date,
             "dateOnCorrespondence": self.date_on_correspondence,
-            "source": self.source, "target": self.target, "title": self.title,
+            "source": self.source, "target": self.target, "recipient": self.recipient, "title": self.title,
             "fileNumber": self.file_number, "folderId": self.folder_id,
             "category": self.category, "priority": self.priority, "status": self.status,
             "actionOfficer": self.action_officer,
@@ -615,9 +616,29 @@ def delete_user(user_id):
 def _upload_one(file_storage, subfolder):
     if file_storage.content_length and file_storage.content_length > MAX_UPLOAD_BYTES:
         raise ValueError(f"{file_storage.filename} exceeds the 50 MB limit")
+    # resource_type_for_mime: PDFs and other non-image docs must go to "raw" bucket
+    # so they are publicly fetchable.
+    mime = (file_storage.mimetype or "").lower()
+    rtype = "image" if mime.startswith("image/") else "raw"
+
+    # preserve_extension_public_id: keep the file extension in the URL so browsers
+    # know how to render it (a PDF must end in ".pdf", not a random hash).
+    import os as _os
+    base, ext = _os.path.splitext(file_storage.filename or "document")
+    safe_base = "".join(
+        c if c.isalnum() or c in "-_." else "_" for c in base
+    )[:80] or "document"
+    unique = uuid.uuid4().hex[:8]
+    public_id = f"{safe_base}_{unique}{ext}"
+
     result = cloudinary.uploader.upload(
-        file_storage, folder=f"{CLOUDINARY_FOLDER}/{subfolder}",
-        resource_type="auto", use_filename=True, unique_filename=True, overwrite=False,
+        file_storage,
+        folder=f"{CLOUDINARY_FOLDER}/{subfolder}",
+        public_id=public_id,
+        resource_type=rtype,
+        use_filename=False,
+        unique_filename=False,
+        overwrite=False,
     )
     return {
         "id": f"doc-{uuid.uuid4().hex[:12]}",
@@ -718,6 +739,15 @@ def create_correspondence():
     missing = [k for k in required if not data.get(k)]
     if missing:
         return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+
+    # Reject duplicate POSTs with the same registry number
+    existing = Correspondence.query.filter_by(registry_no=data["registryNo"]).first()
+    if existing:
+        return jsonify({
+            "error": "A record with this registry number already exists",
+            "record": existing.to_dict(),
+        }), 409
+
     rec_id = data.get("id") or f"corr-{uuid.uuid4().hex[:12]}"
     ctype = data.get("type", "incoming")
     rec = Correspondence(
@@ -726,6 +756,7 @@ def create_correspondence():
         date_on_correspondence=data["dateOnCorrespondence"],
         source=data.get("source") if ctype == "incoming" else None,
         target=data.get("target") if ctype == "outgoing" else None,
+        recipient=data.get("recipient") if ctype == "incoming" else None,
         title=data["title"], file_number=data["fileNumber"],
         folder_id=data.get("folderId"), category=data.get("category"),
         priority=data.get("priority", "normal"),
@@ -766,7 +797,7 @@ def update_correspondence(rec_id):
     data = request.get_json(silent=True) or {}
     for js_key, col in {
         "recordDate": "record_date", "dateOnCorrespondence": "date_on_correspondence",
-        "source": "source", "target": "target", "title": "title",
+        "source": "source", "target": "target", "recipient": "recipient", "title": "title",
         "fileNumber": "file_number", "folderId": "folder_id",
         "category": "category", "priority": "priority", "status": "status",
         "actionOfficer": "action_officer", "physicalLocation": "physical_location",
@@ -838,6 +869,18 @@ def create_folder():
     data = request.get_json(silent=True) or {}
     if not data.get("name") or not data.get("folderCode"):
         return jsonify({"error": "name and folderCode are required"}), 400
+
+    # Idempotency: if a folder with this ID already exists, return it.
+    existing_id = data.get("id")
+    if existing_id:
+        existing = db.session.get(ArchiveFolder, existing_id)
+        if existing:
+            return jsonify({
+                "message": "Folder already exists",
+                "folder": existing.to_dict(),
+                "already_exists": True,
+            }), 200
+
     folder = ArchiveFolder(
         id=data.get("id") or f"folder-{uuid.uuid4().hex[:12]}",
         name=data["name"], folder_code=data["folderCode"],

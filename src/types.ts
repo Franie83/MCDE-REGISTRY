@@ -14,9 +14,15 @@ export interface AttachedDocument {
   name: string;
   size: number;
   type: string;
-  dataUrl?: string;          // base64 or blob URL
-  previewContent?: string;   // Rich text or markdown preview content for instant in-browser reading
+  dataUrl?: string;              // base64 or blob URL for in-browser preview
+  previewContent?: string;       // rich text or markdown preview
   uploadedAt: string;
+  /** Raw File object held between form submit and Cloudinary upload (not persisted) */
+  file?: File;
+  /** Real Cloudinary URL after upload */
+  cloudinaryUrl?: string;
+  /** Cloudinary public_id, used for delete */
+  cloudinaryPublicId?: string;
 }
 
 export interface Correspondence {
@@ -31,6 +37,7 @@ export interface Correspondence {
   // Origin / Destination
   source?: string;              // For incoming: Sender organization / individual
   target?: string;              // For outgoing: Target recipient organization / ministry
+  recipient?: string;           // For incoming: internal recipient (HC / PS / Director...)
   
   // Core indexing
   title: string;                // Subject / Title of correspondence

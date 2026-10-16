@@ -38,6 +38,16 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
   onOpenQrCode,
   cmsSettings,
 }) => {
+  // PDF_URL_RESOLVER: pick the best URL for previews. Cloudinary-uploaded docs
+  // don't have dataUrl; they have cloudinaryUrl.
+  const resolveDocUrl = (doc?: AttachedDocument | null): string | null => {
+    if (!doc) return null;
+    const anyDoc = doc as any;
+    if (anyDoc.cloudinaryUrl) return anyDoc.cloudinaryUrl;
+    if (doc.dataUrl) return doc.dataUrl;
+    return null;
+  };
+
   const [selectedDocIndex, setSelectedDocIndex] = useState<number>(0);
   const [activeViewMode, setActiveViewMode] = useState<'letterhead' | 'attachment'>('letterhead');
   const [zoomLevel, setZoomLevel] = useState<number>(100);
@@ -54,6 +64,14 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
 
   const handleDownload = (doc?: AttachedDocument) => {
     if (!doc) return;
+    // DOWNLOAD_BY_URL: if we have a Cloudinary URL, open it in a new tab so the
+    // browser handles the actual file download.
+    const anyDoc = doc as any;
+    const remoteUrl = anyDoc.cloudinaryUrl || (doc.dataUrl && !doc.dataUrl.startsWith('data:') ? doc.dataUrl : null);
+    if (remoteUrl) {
+      window.open(remoteUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
     if (doc.dataUrl) {
       const a = document.createElement('a');
       a.href = doc.dataUrl;
@@ -309,7 +327,9 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                     <>
                       <p className="text-slate-500 font-medium uppercase tracking-wider text-[10px]">From Originating Authority:</p>
                       <p className="font-bold text-sm text-slate-900">{correspondence.source}</p>
-                      <p className="text-slate-600">To: The Honourable Commissioner / Permanent Secretary</p>
+                      <p className="text-slate-600">
+                        To: {(correspondence as any).recipient || 'The Honourable Commissioner / Permanent Secretary'}
+                      </p>
                     </>
                   ) : (
                     <>
@@ -352,12 +372,25 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                 {/* Signatory block */}
                 <div className="font-sans text-xs pt-4 mb-8 max-w-xs">
                   <div className="h-10 border-b border-slate-400 mb-2"></div>
-                  <p className="font-bold text-slate-900">{correspondence.signatory || (correspondence.type === 'incoming' ? correspondence.source : 'Directorate of ICT & e-Governance')}</p>
-                  <p className="text-slate-500 text-[11px]">Authorized Signatory</p>
+                  <p className="font-bold text-slate-900">
+                    {correspondence.signatory
+                      || (cmsSettings && (cmsSettings as any).activeOfficerName)
+                      || 'Registry Officer'}
+                  </p>
+                  <p className="text-slate-500 text-[11px]">
+                    {(cmsSettings && (cmsSettings as any).activeOfficerRole) || 'Authorized Signatory'}
+                  </p>
                 </div>
 
                 {/* Official Physical Stamp / Registry Folio Endorsement */}
-                <div className="border-2 border-emerald-700 text-emerald-800 rounded-lg p-3 font-mono text-xs max-w-xs ml-auto rotate-[-2deg] bg-emerald-50/40">
+                <div className="border-2 border-emerald-700 text-emerald-800 rounded-lg p-3 font-mono text-xs max-w-xs ml-auto rotate-[-2deg] bg-emerald-50/40 relative">
+                  {(cmsSettings && (cmsSettings as any).logoUrl) && (
+                    <img
+                      src={(cmsSettings as any).logoUrl}
+                      alt="Registry Stamp"
+                      className="w-12 h-12 object-contain absolute -top-6 -right-2 opacity-90"
+                    />
+                  )}
                   <div className="flex items-center gap-1.5 font-bold uppercase text-[11px] mb-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>EDSG MOCDE REGISTRY STAMP</span>
@@ -399,7 +432,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                     <FileText className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                     <p className="text-sm font-semibold text-slate-700">No document attached to this entry</p>
                   </div>
-                ) : isImage(currentDoc) && currentDoc.dataUrl ? (
+                ) : isImage(currentDoc) && resolveDocUrl(currentDoc) ? (
                   /* High-Res Image View */
                   <div className="flex flex-col items-center">
                     <div className="mb-4 text-xs text-slate-500 font-mono flex items-center justify-between w-full border-b pb-2">
@@ -407,13 +440,13 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                       <span>{formatFileSize(currentDoc.size)} · Image Attachment</span>
                     </div>
                     <img 
-                      src={currentDoc.dataUrl} 
+                      src={resolveDocUrl(currentDoc) || undefined} 
                       alt={currentDoc.name} 
                       className="max-h-[75vh] object-contain rounded border border-slate-200 shadow-xs"
                       referrerPolicy="no-referrer"
                     />
                   </div>
-                ) : isPdf(currentDoc) && currentDoc.dataUrl && currentDoc.dataUrl.startsWith('data:application/pdf') ? (
+                ) : isPdf(currentDoc) && resolveDocUrl(currentDoc) ? (   /* PDF_BY_URL */
                   /* Embedded PDF Object View */
                   <div className="w-full h-[75vh]">
                     <div className="mb-3 text-xs text-slate-500 font-mono flex items-center justify-between border-b pb-2">
@@ -421,7 +454,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                       <span>{formatFileSize(currentDoc.size)} · PDF Document</span>
                     </div>
                     <iframe 
-                      src={currentDoc.dataUrl} 
+                      src={resolveDocUrl(currentDoc) || undefined} 
                       title={currentDoc.name}
                       className="w-full h-full border border-slate-300 rounded-lg bg-slate-100"
                     />
@@ -499,3 +532,7 @@ All contents are indexed and searchable across the Ministry registry.`}
     </div>
   );
 };
+
+// RECIPIENT_ON_LETTERHEAD
+
+// LETTERHEAD_CMS_AWARE

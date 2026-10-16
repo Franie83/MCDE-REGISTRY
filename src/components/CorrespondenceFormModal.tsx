@@ -8,6 +8,7 @@ import {
   TreatmentStatus, ArchiveFolder,
 } from '../types';
 import { generateNextRegistryNumber, processUploadedFile, formatFileSize } from '../utils/storage';
+import api from '../utils/api';
 import {
   Upload, X, FileText, CheckCircle2, AlertCircle,
   ArrowDownLeft, ArrowUpRight, Folder, FolderPlus, Search,
@@ -38,6 +39,11 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
   const [recordDate, setRecordDate] = useState<string>('');
   const [dateOnCorrespondence, setDateOnCorrespondence] = useState<string>('');
   const [sourceOrTarget, setSourceOrTarget] = useState<string>('');
+  const [recipient, setRecipient] = useState<string>('');
+  const [letterBody, setLetterBody] = useState<string>('');
+  const [signatory, setSignatory] = useState<string>('');
+  const [directorates, setDirectorates] = useState<string[]>([]);
+  const [customRecipient, setCustomRecipient] = useState<string>('');
   const [title, setTitle] = useState<string>('');
 
   const [selectedFolderId, setSelectedFolderId] = useState<string>('');
@@ -53,6 +59,7 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
   const [status, setStatus] = useState<TreatmentStatus>('received');
   const [documents, setDocuments] = useState<AttachedDocument[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -74,6 +81,12 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
   });
 
   useEffect(() => {
+    api.getCms()
+      .then((cms: any) => setDirectorates(Array.isArray(cms?.directorates) ? cms.directorates : []))
+      .catch(() => setDirectorates([]));
+  }, []);
+
+  useEffect(() => {
     if (editingRecord) {
       setType(editingRecord.type);
       setRecordDate(editingRecord.recordDate);
@@ -83,6 +96,9 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
           ? editingRecord.source || ''
           : editingRecord.target || '',
       );
+      setRecipient((editingRecord as any).recipient || '');
+      setLetterBody((editingRecord as any).letterBody || '');
+      setSignatory((editingRecord as any).signatory || '');
       setTitle(editingRecord.title);
 
       const matched = folders.find(
@@ -98,6 +114,10 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
       setRecordDate(todayStr);
       setDateOnCorrespondence(todayStr);
       setSourceOrTarget('');
+      setRecipient('The Honourable Commissioner');
+      setCustomRecipient('');
+      setLetterBody('');
+      setSignatory('');
       setTitle('');
       setSelectedFolderId('');
       setFolderSearchQuery('');
@@ -155,12 +175,16 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
       const newDocs: AttachedDocument[] = [];
       for (let i = 0; i < fileList.length; i++) {
         const doc = await processUploadedFile(fileList[i]);
-        newDocs.push(doc as AttachedDocument);
+        // processUploadedFile already keeps .file; ensure it's attached
+        newDocs.push({
+          ...(doc as AttachedDocument),
+          file: fileList[i],
+        });
       }
       setDocuments((prev) => [...prev, ...newDocs]);
     } catch (err) {
       console.error('Error reading documents', err);
-      alert('Error uploading document. Please check the document format.');
+      alert('Error reading document. Please check the document format.');
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -194,15 +218,51 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;      // guard against double-click
     if (!validate()) return;
+
+    setIsSubmitting(true);
+    try {
 
     const registryNo = editingRecord
       ? editingRecord.registryNo
       : generateNextRegistryNumber(type, existingRecords);
 
     const targetFolder = folders.find((f) => f.id === selectedFolderId);
+
+    // CLOUDINARY_UPLOAD_FLOW: upload any new local files to Cloudinary first
+    let uploadedDocuments = documents;
+    const pendingUploads = documents.filter(
+      (d) => d.file && !d.cloudinaryUrl,
+    );
+    if (pendingUploads.length > 0) {
+      setIsUploading(true);
+      try {
+        const filesToUpload = pendingUploads.map((d) => d.file as File);
+        const results = await api.upload(filesToUpload, 'correspondence');
+        // Match results back to their documents by name
+        uploadedDocuments = documents.map((d) => {
+          if (!d.file || d.cloudinaryUrl) return d;
+          const match = results.find((r: any) => r.name === d.name);
+          if (!match) return d;
+          return {
+            ...d,
+            cloudinaryUrl: match.cloudinaryUrl,
+            cloudinaryPublicId: match.cloudinaryPublicId,
+            dataUrl: match.cloudinaryUrl,  // so DocumentViewerModal can load directly
+            file: undefined,               // don't persist the raw File
+          } as AttachedDocument;
+        });
+      } catch (err: any) {
+        alert(err?.message || 'Upload to Cloudinary failed');
+        setIsUploading(false);
+        return;
+      } finally {
+        setIsUploading(false);
+      }
+    }
 
     const recordToSave: Correspondence = {
       id: editingRecord ? editingRecord.id : 'corr-' + Date.now(),
@@ -212,6 +272,11 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
       dateOnCorrespondence,
       source: type === 'incoming' ? sourceOrTarget.trim() : undefined,
       target: type === 'outgoing' ? sourceOrTarget.trim() : undefined,
+      recipient: type === 'incoming'
+        ? (recipient === 'Other' ? customRecipient.trim() : recipient) || undefined
+        : undefined,
+      letterBody: letterBody.trim() || undefined,
+      signatory: signatory.trim() || undefined,
       title: title.trim(),
       fileNumber: targetFolder ? targetFolder.folderCode : 'EDSG/MOCDE/GEN/2026',
       folderId: selectedFolderId,
@@ -219,13 +284,16 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
       priority: 'normal',
       status,
       physicalLocation: targetFolder?.physicalLocation,
-      documents,
+      documents: uploadedDocuments,
       createdAt: editingRecord ? editingRecord.createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     onSave(recordToSave, selectedFolderId);
     onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -522,6 +590,36 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
             {errors.sourceOrTarget && <p className="text-[11px] text-red-600 mt-1">{errors.sourceOrTarget}</p>}
           </div>
 
+          {/* RECIPIENT_FIELD_JSX: shown only for inward letters */}
+          {type === 'incoming' && (
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                To (Recipient) <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+                className="w-full text-sm px-3 py-1.5 border border-slate-300 rounded-lg bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-400"
+              >
+                <option value="The Honourable Commissioner">The Honourable Commissioner</option>
+                <option value="The Permanent Secretary">The Permanent Secretary</option>
+                {directorates.map((d) => (
+                  <option key={d} value={'Director, ' + d}>{'Director, ' + d}</option>
+                ))}
+                <option value="Other">Other (specify)</option>
+              </select>
+              {recipient === 'Other' && (
+                <input
+                  type="text"
+                  value={customRecipient}
+                  onChange={(e) => setCustomRecipient(e.target.value)}
+                  placeholder="Enter recipient name"
+                  className="mt-2 w-full text-sm px-3 py-1.5 border border-slate-300 rounded-lg bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-400"
+                />
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-1">
               Title / Subject of Correspondence <span className="text-red-500">*</span>
@@ -537,6 +635,36 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
               }
             />
             {errors.title && <p className="text-[11px] text-red-600 mt-1">{errors.title}</p>}
+          </div>
+
+          {/* LETTER_BODY_FIELD_JSX */}
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              Letter Body (optional)
+            </label>
+            <textarea
+              rows={4}
+              value={letterBody}
+              onChange={(e) => setLetterBody(e.target.value)}
+              placeholder="Paste or type the actual letter content here. Leave blank to use a system-generated summary."
+              className="w-full text-sm px-3 py-1.5 border border-slate-300 rounded-lg bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-400 font-serif"
+            />
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Shown on the printed letterhead. Leave blank to auto-generate.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              Signatory (optional override)
+            </label>
+            <input
+              type="text"
+              value={signatory}
+              onChange={(e) => setSignatory(e.target.value)}
+              placeholder="Defaults to the CMS active officer"
+              className="w-full text-sm px-3 py-1.5 border border-slate-300 rounded-lg bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-400"
+            />
           </div>
 
           <div>
@@ -596,14 +724,16 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
             </button>
             <button
               type="submit"
-              disabled={isUploading}
+              disabled={isUploading || isSubmitting}
               className="px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 disabled:opacity-50 rounded-lg shadow-sm transition-colors"
             >
-              {editingRecord
-                ? 'Update Record'
-                : type === 'incoming'
-                  ? 'Receive & File into Folder'
-                  : 'Dispatch & File into Folder'}
+              {isSubmitting
+                ? 'Saving...'
+                : editingRecord
+                  ? 'Update Record'
+                  : type === 'incoming'
+                    ? 'Receive & File into Folder'
+                    : 'Dispatch & File into Folder'}
             </button>
           </div>
         </form>
@@ -613,3 +743,5 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
 };
 
 export default CorrespondenceFormModal;
+
+// CLOUDINARY_UPLOAD_FLOW
