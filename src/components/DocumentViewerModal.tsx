@@ -324,23 +324,30 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                 })()}
 
                 {/* Sender / Addressee Header */}
-                <div className="font-sans text-xs mb-6 space-y-1">
-                  {correspondence.type === 'incoming' ? (
-                    <>
-                      <p className="text-slate-500 font-medium uppercase tracking-wider text-[10px]">From Originating Authority:</p>
-                      <p className="font-bold text-sm text-slate-900">{correspondence.source}</p>
-                      <p className="text-slate-600">
-                        To: {(correspondence as any).recipient || 'The Honourable Commissioner / Permanent Secretary'}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-slate-500 font-medium uppercase tracking-wider text-[10px]">Dispatched To:</p>
-                      <p className="font-bold text-sm text-slate-900">{correspondence.target}</p>
-                      <p className="text-slate-600">From: Ministry of Communication & Digital Economy, Benin City</p>
-                    </>
-                  )}
-                </div>
+                {(() => {
+                  const currentCms = cmsSettings || getCmsSettings();
+                  return (
+                    <div className="font-sans text-xs mb-6 space-y-1">
+                      {correspondence.type === 'incoming' ? (
+                        <>
+                          <p className="text-slate-500 font-medium uppercase tracking-wider text-[10px]">From Originating Authority:</p>
+                          <p className="font-bold text-sm text-slate-900">{correspondence.source}</p>
+                          <p className="text-slate-600">
+                            To: {(correspondence as any).recipient || 'The Honourable Commissioner / Permanent Secretary'}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-slate-500 font-medium uppercase tracking-wider text-[10px]">Dispatched To:</p>
+                          <p className="font-bold text-sm text-slate-900">{correspondence.target}</p>
+                          <p className="text-slate-600">
+                            From: {currentCms.outgoingFromLine || 'Ministry of Communication & Digital Economy, Benin City'}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Letter Subject */}
                 <div className="font-sans mb-6">
@@ -351,25 +358,32 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                 </div>
 
                 {/* Official Letter Body Text */}
-                <div className="text-sm leading-relaxed space-y-4 mb-8 text-slate-800 text-justify font-serif">
-                  {correspondence.letterBody ? (
-                    correspondence.letterBody.split('\n\n').map((paragraph, idx) => (
-                      <p key={idx} className="indent-6">{paragraph}</p>
-                    ))
-                  ) : (
-                    <>
-                      <p className="indent-6">
-                        I am directed to respectfully forward herewith official correspondence concerning <strong>{correspondence.title}</strong> for your administrative consideration and necessary action.
-                      </p>
-                      <p className="indent-6">
-                        The accompanying schedules and technical annexes attached hereto have been verified by the Central Registry in compliance with the Edo State Public Records & Electronic Governance directives.
-                      </p>
-                      <p className="indent-6">
-                        Kindly review the stipulations contained herein and issue the appropriate departmental directives at your earliest convenience.
-                      </p>
-                    </>
-                  )}
-                </div>
+                {(() => {
+                  const currentCms = cmsSettings || getCmsSettings();
+                  const para1 = (currentCms as any).defaultLetterPara1
+                    || 'I am directed to respectfully forward herewith official correspondence concerning {title} for your administrative consideration and necessary action.';
+                  const para2 = (currentCms as any).defaultLetterPara2
+                    || 'The accompanying schedules and technical annexes attached hereto have been verified by the Central Registry in compliance with the Edo State Public Records & Electronic Governance directives.';
+                  const para3 = (currentCms as any).defaultLetterPara3
+                    || 'Kindly review the stipulations contained herein and issue the appropriate departmental directives at your earliest convenience.';
+                  const renderPara1 = para1.replace('{title}', correspondence.title);
+
+                  return (
+                    <div className="text-sm leading-relaxed space-y-4 mb-8 text-slate-800 text-justify font-serif">
+                      {correspondence.letterBody ? (
+                        correspondence.letterBody.split('\n\n').map((paragraph, idx) => (
+                          <p key={idx} className="indent-6">{paragraph}</p>
+                        ))
+                      ) : (
+                        <>
+                          <p className="indent-6">{renderPara1}</p>
+                          <p className="indent-6">{para2}</p>
+                          <p className="indent-6">{para3}</p>
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Signatory block */}
                 <div className="font-sans text-xs pt-4 mb-8 max-w-xs">
@@ -403,7 +417,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                   )}
                   <div className="flex items-center gap-1.5 font-bold uppercase text-[11px] mb-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>EDSG MOCDE REGISTRY STAMP</span>
+                    <span>{(cmsSettings && (cmsSettings as any).stampCaption) || 'EDSG MOCDE REGISTRY STAMP'}</span>
                   </div>
                   <p>Received / Dispatched: <strong>{correspondence.recordDate}</strong></p>
                   <p>Docket: <strong>{correspondence.fileNumber}</strong></p>

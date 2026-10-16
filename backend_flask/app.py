@@ -299,6 +299,14 @@ class CmsSettings(db.Model):
     address = db.Column(db.Text)
     logo_url = db.Column(db.Text)
     stamp_url = db.Column(db.Text)
+
+    # Letter template / print content
+    letter_subtitle       = db.Column(db.String(255))
+    default_letter_para_1 = db.Column(db.Text)
+    default_letter_para_2 = db.Column(db.Text)
+    default_letter_para_3 = db.Column(db.Text)
+    outgoing_from_line    = db.Column(db.String(255))
+    stamp_caption         = db.Column(db.String(120))
     inward_prefix = db.Column(db.String(64))
     outward_prefix = db.Column(db.String(64))
     current_year = db.Column(db.String(8))
@@ -328,6 +336,13 @@ class CmsSettings(db.Model):
             "storageLocations": self.storage_locations or [],
             "categories": self.categories or [],
             "officers": self.officers or [],
+            # Letterhead & print content
+            "letterSubtitle":      self.letter_subtitle,
+            "defaultLetterPara1":  self.default_letter_para_1,
+            "defaultLetterPara2":  self.default_letter_para_2,
+            "defaultLetterPara3":  self.default_letter_para_3,
+            "outgoingFromLine":    self.outgoing_from_line,
+            "stampCaption":        self.stamp_caption,
         }
 
 
@@ -1138,6 +1153,12 @@ def update_cms():
         "storageLocations": "storage_locations",
         "categories": "categories",
         "officers": "officers",
+        "letterSubtitle":     "letter_subtitle",
+        "defaultLetterPara1": "default_letter_para_1",
+        "defaultLetterPara2": "default_letter_para_2",
+        "defaultLetterPara3": "default_letter_para_3",
+        "outgoingFromLine":   "outgoing_from_line",
+        "stampCaption":       "stamp_caption",
     }
     for js_key, col in field_map.items():
         if js_key in data:

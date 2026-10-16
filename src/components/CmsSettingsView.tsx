@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { CmsSettings } from '../types';
 import { defaultCmsSettings, defaultEdoStateLogo } from '../utils/storage';
 import { 
@@ -29,6 +29,11 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
   onSaveSettings,
 }) => {
   const [formData, setFormData] = useState<CmsSettings>(settings);
+
+  // Re-sync formData when parent settings prop changes (post-save or load).
+  useEffect(() => {
+    setFormData(settings);
+  }, [settings]);
   const [newDepartment, setNewDepartment] = useState<string>('');
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
@@ -142,6 +147,7 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
               className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
             >
               <Save className="w-3.5 h-3.5 text-emerald-400" />
+
               <span>Save All Changes</span>
             </button>
           </div>
@@ -456,6 +462,95 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
 
         {/* Section 5: System Banner Announcement */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
+      {/* Section: Letterhead & Print Content */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div>
+          <h3 className="text-base font-bold text-slate-900">Letterhead &amp; Print Content</h3>
+          <p className="text-xs text-slate-500 mt-1">
+            Customize fixed text used on every printed letter and in-browser preview.
+          </p>
+        </div>
+
+        <div>
+          <label className="block font-semibold text-slate-700 mb-1 text-sm">
+            Registry Subtitle (footer line)
+          </label>
+          <input
+            type="text"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="Central Records, Archives & Document Tracking System"
+            value={(formData as any).letterSubtitle || ''}
+            onChange={(e) => setFormData({ ...formData, letterSubtitle: e.target.value } as any)}
+          />
+        </div>
+
+        <div>
+          <label className="block font-semibold text-slate-700 mb-1 text-sm">
+            Default Letter - Paragraph 1
+          </label>
+          <textarea
+            rows={2}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="I am directed to respectfully forward herewith..."
+            value={(formData as any).defaultLetterPara1 || ''}
+            onChange={(e) => setFormData({ ...formData, defaultLetterPara1: e.target.value } as any)}
+          />
+          <p className="text-[11px] text-slate-400 mt-1">
+            Use <code>{'{title}'}</code> where the letter subject should appear.
+          </p>
+        </div>
+
+        <div>
+          <label className="block font-semibold text-slate-700 mb-1 text-sm">
+            Default Letter - Paragraph 2
+          </label>
+          <textarea
+            rows={2}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            value={(formData as any).defaultLetterPara2 || ''}
+            onChange={(e) => setFormData({ ...formData, defaultLetterPara2: e.target.value } as any)}
+          />
+        </div>
+
+        <div>
+          <label className="block font-semibold text-slate-700 mb-1 text-sm">
+            Default Letter - Paragraph 3
+          </label>
+          <textarea
+            rows={2}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            value={(formData as any).defaultLetterPara3 || ''}
+            onChange={(e) => setFormData({ ...formData, defaultLetterPara3: e.target.value } as any)}
+          />
+        </div>
+
+        <div>
+          <label className="block font-semibold text-slate-700 mb-1 text-sm">
+            Outgoing "From" Line
+          </label>
+          <input
+            type="text"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="Ministry of Communication & Digital Economy, Benin City"
+            value={(formData as any).outgoingFromLine || ''}
+            onChange={(e) => setFormData({ ...formData, outgoingFromLine: e.target.value } as any)}
+          />
+        </div>
+
+        <div>
+          <label className="block font-semibold text-slate-700 mb-1 text-sm">
+            Stamp Caption
+          </label>
+          <input
+            type="text"
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+            placeholder="EDSG MOCDE REGISTRY STAMP"
+            value={(formData as any).stampCaption || ''}
+            onChange={(e) => setFormData({ ...formData, stampCaption: e.target.value } as any)}
+          />
+        </div>
+      </div>
+
           <div className="border-b border-slate-200 pb-3">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-emerald-800" />

@@ -139,6 +139,14 @@ export interface CmsSettings {
   bannerNotice: string;
   departments: string[];
   stampUrl?: string;             // Official registry stamp image (separate from logo)
+  // NEW — Letterhead & Print Content (Option C)
+  letterSubtitle?: string;       // Footer line under the seal, e.g. "Central Records, Archives & Document Tracking System"
+  defaultLetterPara1?: string;   // Default letter body — paragraph 1 (use {title} for subject)
+  defaultLetterPara2?: string;   // Default letter body — paragraph 2
+  defaultLetterPara3?: string;   // Default letter body — paragraph 3
+  outgoingFromLine?: string;     // Outgoing letters "From:" line
+  stampCaption?: string;         // Caption inside the registry stamp box
+  // Existing
   storageLocations?: string[];
   categories?: string[];
   officers?: string[];

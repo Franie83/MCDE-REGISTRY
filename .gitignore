@@ -25,3 +25,15 @@ backend_flask/.env
 
 # OS
 Thumbs.db
+
+# Local helper scripts (one-off dev utilities)
+_diag_*.py
+_patch_*.py
+_fix_*.py
+_move_*.py
+_show_*.py
+_grep_*.py
+_dump_*.py
+_seed_*.py
+
+_migrate_*.py

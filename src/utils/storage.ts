@@ -245,6 +245,13 @@ export const defaultCmsSettings: CmsSettings = {
     'Finance & Accounts',
     'Public Service e-Gov',
   ],
+  // Letterhead & Print Content defaults
+  letterSubtitle: 'Central Records, Archives & Document Tracking System',
+  defaultLetterPara1: 'I am directed to respectfully forward herewith official correspondence concerning {title} for your administrative consideration and necessary action.',
+  defaultLetterPara2: 'The accompanying schedules and technical annexes attached hereto have been verified by the Central Registry in compliance with the Edo State Public Records & Electronic Governance directives.',
+  defaultLetterPara3: 'Kindly review the stipulations contained herein and issue the appropriate departmental directives at your earliest convenience.',
+  outgoingFromLine: 'Ministry of Communication & Digital Economy, Benin City',
+  stampCaption: 'EDSG MOCDE REGISTRY STAMP',
 };
 
 // ?? Compatibility shims ????????????????????????????????????????????????

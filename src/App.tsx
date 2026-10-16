@@ -496,7 +496,7 @@ const AppShell: React.FC = () => {
           <div className="flex items-center gap-4 text-[11px]">
             <span>{cmsSettings.officialEmail}</span>
             <span>.</span>
-            <span>Central Records, Archives & Document Tracking System</span>
+            <span>{cmsSettings.letterSubtitle || 'Central Records, Archives & Document Tracking System'}</span>
           </div>
         </div>
       </footer>
