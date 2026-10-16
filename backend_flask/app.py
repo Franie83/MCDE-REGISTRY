@@ -298,6 +298,7 @@ class CmsSettings(db.Model):
     department = db.Column(db.String(200))
     address = db.Column(db.Text)
     logo_url = db.Column(db.Text)
+    stamp_url = db.Column(db.Text)
     inward_prefix = db.Column(db.String(64))
     outward_prefix = db.Column(db.String(64))
     current_year = db.Column(db.String(8))
@@ -316,7 +317,8 @@ class CmsSettings(db.Model):
         return {
             "stateName": self.state_name, "mdaName": self.mda_name,
             "department": self.department, "address": self.address,
-            "logoUrl": self.logo_url, "inwardPrefix": self.inward_prefix,
+            "logoUrl": self.logo_url,
+            "stampUrl": self.stamp_url, "inwardPrefix": self.inward_prefix,
             "outwardPrefix": self.outward_prefix, "currentYear": self.current_year,
             "officialEmail": self.official_email, "officialPhone": self.official_phone,
             "activeOfficerName": self.active_officer_name,
@@ -1040,7 +1042,7 @@ def update_cms():
     data = request.get_json(silent=True) or {}
     field_map = {
         "stateName": "state_name", "mdaName": "mda_name", "department": "department",
-        "address": "address", "logoUrl": "logo_url",
+        "address": "address", "logoUrl": "logo_url", "stampUrl": "stamp_url",
         "inwardPrefix": "inward_prefix", "outwardPrefix": "outward_prefix",
         "currentYear": "current_year", "officialEmail": "official_email",
         "officialPhone": "official_phone", "activeOfficerName": "active_officer_name",

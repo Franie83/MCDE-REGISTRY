@@ -160,23 +160,28 @@ const AppShell: React.FC = () => {
             (f) => f.id === targetId || f.folderCode === savedRecord.fileNumber
           );
           if (match) {
-            // STUB_REMOVED_V2: we no longer generate a fake "[Letter] ... .pdf" placeholder.
-            // Only the real uploaded attachments appear in the folder.
-            
-            const attachmentDocuments: FolderFile[] = savedRecord.documents.map((d) => ({
-              id: d.id,
-              name: d.name,
-              size: d.size,
-              type: d.type,
-              dataUrl: d.dataUrl,
-              previewContent: d.previewContent,
-              uploadedAt: d.uploadedAt,
-              uploadedBy: 'Registry Officer',
-              notes: 'Enclosure for ' + savedRecord.registryNo,
+            // CORRESPONDENCE_ROW: one row per correspondence, not per attachment.
+            // Clicking the row opens the correspondence preview where its
+            // attachments appear under the "Attached Enclosures" tab.
+            const attachmentCount = (savedRecord.documents || []).length;
+            const totalAttachmentSize = (savedRecord.documents || [])
+              .reduce((sum, d) => sum + (d.size || 0), 0);
+
+            const correspondenceRow: FolderFile = {
+              id: 'corr-' + savedRecord.id,
+              name: '[Correspondence] ' + savedRecord.registryNo +  ' — ' + savedRecord.title,
+              size: totalAttachmentSize,
+              type: 'correspondence',
+              uploadedAt: savedRecord.createdAt || new Date().toISOString(),
+              uploadedBy: 'Registry System',
+              notes: (savedRecord.type === 'incoming'
+                ? 'From: ' + (savedRecord.source || 'N/A')
+                : 'To: ' + (savedRecord.target || 'N/A'))
+                +  ' · ' + attachmentCount + ' attachment' + (attachmentCount === 1 ? '' : 's'),
               correspondenceId: savedRecord.id,
               correspondenceRef: savedRecord.registryNo,
-            }));
-            const newDocuments = [...attachmentDocuments];
+            };
+            const newDocuments = [correspondenceRow];
             const updatedFile = await api.updateFolder(match.id, {
               ...match,
               files: [...newDocuments, ...match.files],

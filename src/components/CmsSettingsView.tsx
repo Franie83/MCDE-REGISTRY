@@ -32,6 +32,7 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
   const [newDirectorate, setNewDirectorate] = useState<string>('');
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const stampInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -46,6 +47,21 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
       }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleStampUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setFormData((prev) => ({ ...prev, stampUrl: result } as any));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResetStamp = () => {
+    setFormData((prev) => ({ ...prev, stampUrl: '' } as any));
   };
 
   const handleResetLogo = () => {
@@ -199,6 +215,66 @@ export const CmsSettingsView: React.FC<CmsSettingsViewProps> = ({
               </div>
               <p className="text-[11px] text-slate-400">
                 Recommended: Square or transparent PNG, SVG, or high-res JPG (under 4MB).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* REGISTRY_STAMP_SECTION ? separate stamp for received letters */}
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
+          <div className="border-b border-slate-200 pb-3">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-emerald-800" />
+              <span>Registry Official Stamp</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Upload the Ministry Registry stamp (e.g. a red circular seal). Displayed on the letterhead next to the stamp details.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-6 pt-2">
+            <div className="w-28 h-28 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center p-2 shrink-0 shadow-2xs">
+              {(formData as any).stampUrl ? (
+                <img
+                  src={(formData as any).stampUrl}
+                  alt="Registry Stamp"
+                  className="max-h-full max-w-full object-contain"
+                />
+              ) : (
+                <div className="text-center text-slate-400 text-xs">
+                  <ImageIcon className="w-8 h-8 mx-auto mb-1 opacity-50" />
+                  <span>No Stamp</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2.5 text-xs flex-1">
+              <input
+                ref={stampInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleStampUpload}
+                className="hidden"
+              />
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => stampInputRef.current?.click()}
+                  className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white font-semibold rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Registry Stamp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetStamp}
+                  className="px-3.5 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition-colors"
+                >
+                  Remove Stamp
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Recommended: transparent PNG of the registry seal, square, under 1 MB.
               </p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AttachedDocument, Correspondence, FolderFile, CmsSettings } from '../types';
 import { formatFileSize, getCmsSettings } from '../utils/storage';
+import { useAuth } from '../context/AuthContext';
 import { 
   X, 
   Download, 
@@ -48,6 +49,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
     return null;
   };
 
+  const { user: currentUser } = useAuth();
   const [selectedDocIndex, setSelectedDocIndex] = useState<number>(0);
   const [activeViewMode, setActiveViewMode] = useState<'letterhead' | 'attachment'>('letterhead');
   const [zoomLevel, setZoomLevel] = useState<number>(100);
@@ -371,9 +373,9 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
 
                 {/* Signatory block */}
                 <div className="font-sans text-xs pt-4 mb-8 max-w-xs">
-                  <div className="h-10 border-b border-slate-400 mb-2"></div>
                   <p className="font-bold text-slate-900">
                     {correspondence.signatory
+                      || currentUser?.fullName
                       || (cmsSettings && (cmsSettings as any).activeOfficerName)
                       || 'Registry Officer'}
                   </p>
@@ -384,6 +386,14 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
 
                 {/* Official Physical Stamp / Registry Folio Endorsement */}
                 <div className="border-2 border-emerald-700 text-emerald-800 rounded-lg p-3 font-mono text-xs max-w-xs ml-auto rotate-[-2deg] bg-emerald-50/40 relative">
+                  {/* STAMP_IMAGE_OVERLAY: separate registry stamp image */}
+                  {cmsSettings && (cmsSettings as any).stampUrl && (
+                    <img
+                      src={(cmsSettings as any).stampUrl}
+                      alt="Registry Stamp"
+                      className="absolute -top-12 -left-14 w-36 h-36 object-contain opacity-90 rotate-[-15deg] pointer-events-none select-none"
+                    />
+                  )}
                   {(cmsSettings && (cmsSettings as any).logoUrl) && (
                     <img
                       src={(cmsSettings as any).logoUrl}
@@ -536,3 +546,11 @@ All contents are indexed and searchable across the Ministry registry.`}
 // RECIPIENT_ON_LETTERHEAD
 
 // LETTERHEAD_CMS_AWARE
+
+// SIGNATORY_LOGGED_IN_USER
+
+// NO_SIGNATURE_LINE
+
+// STAMP_IMAGE_OVERLAY
+
+// STAMP_SIZE_ADJUSTED
