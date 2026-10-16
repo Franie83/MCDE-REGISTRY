@@ -6,3 +6,22 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+.env.local
+backend_flask/.env
+
+# OS
+Thumbs.db
