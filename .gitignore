@@ -46,3 +46,4 @@ deploy_*.py
 ~$*.docx
 ~$*.xlsx
 ~$*.pptx
+_diagnose_*.py
