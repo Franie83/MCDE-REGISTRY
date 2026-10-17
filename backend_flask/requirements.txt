@@ -11,4 +11,5 @@ python-dotenv==1.0.1
 # Local Python 3.15: psycopg3 (psycopg2-binary has no wheel yet for 3.15)
 # PythonAnywhere 3.13: psycopg2-binary
 psycopg[binary]>=3.2; python_version >= "3.14"
-psycopg2-binary>=2.9; python_version < "3.14"gunicorn>=21.2
+psycopg2-binary>=2.9; python_version < "3.14"
+gunicorn>=21.2
