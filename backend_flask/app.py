@@ -39,6 +39,15 @@ def _now_utc():
     return datetime.now(timezone.utc)
 
 
+def _mask_dburl(url: str) -> str:
+    """Return a DB URL with the password replaced by ***."""
+    import re as _re
+    if not url:
+        return url
+    return _re.sub(r"://([^:]+):[^@]+@", r"://\1:***@", url)
+
+
+
 def _resolve_database_url():
     raw = (os.environ.get("DATABASE_URL") or "").strip()
     if not raw:
@@ -1176,7 +1185,7 @@ def update_cms():
 if __name__ == "__main__":
     print("=" * 62)
     print("  Edo State MOCDE Registry API")
-    print(f"  Database: {DATABASE_URL if not USING_SQLITE else 'SQLite (local dev)'}")
+    print(f"  Database: {_mask_dburl(DATABASE_URL) if not USING_SQLITE else 'SQLite (local dev)'}")
     print("  Running:  http://127.0.0.1:5000")
     print("=" * 62)
     app.run(host="0.0.0.0", port=5000, debug=True)

@@ -37,3 +37,12 @@ _dump_*.py
 _seed_*.py
 
 _migrate_*.py
+
+# Deployment helper scripts (one-off)
+_deploy_*.py
+deploy_*.py
+
+# Word/Excel temp lock files
+~$*.docx
+~$*.xlsx
+~$*.pptx
