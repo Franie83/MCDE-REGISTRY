@@ -32,6 +32,9 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFolderId, setSelectedFolderId] = useState<string>(folders[0]?.id || '');
   const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>('all');
+  
+  // NEW: Local state for filtering documents inside a specific file
+  const [docSearchTerm, setDocSearchTerm] = useState<string>('');
 
   // Create Folder modal state
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
@@ -134,6 +137,21 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
 
     return { matchingFolders, matchingFiles };
   }, [folders, searchQuery, selectedDeptFilter]);
+
+  // NEW: Filter documents inside the currently selected file
+  const filteredDocuments = useMemo(() => {
+    if (!currentFolder) return [];
+    if (!docSearchTerm.trim()) return currentFolder.files;
+    
+    const q = docSearchTerm.toLowerCase();
+    return currentFolder.files.filter((file) => {
+      return (
+        file.name.toLowerCase().includes(q) ||
+        (file.notes && file.notes.toLowerCase().includes(q)) ||
+        (file.type && file.type.toLowerCase().includes(q))
+      );
+    });
+  }, [currentFolder, docSearchTerm]);
 
   const handleCreateFolder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -319,7 +337,10 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
                 return (
                   <div
                     key={folder.id}
-                    onClick={() => setSelectedFolderId(folder.id)}
+                    onClick={() => {
+                      setSelectedFolderId(folder.id);
+                      setDocSearchTerm(''); // Reset document filter when switching files
+                    }}
                     className={
                       'p-3.5 rounded-xl border text-xs cursor-pointer transition-all ' +
                       (isSelected
@@ -423,11 +444,33 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
               </div>
 
               <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+                <div className="px-5 py-3 border-b border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    File Documents &amp; Enclosures ({currentFolder.files.length})
+                    File Documents &amp; Enclosures ({filteredDocuments.length})
                   </span>
-                  <span className="text-[11px] text-slate-400 font-mono">Click Preview to read immediately</span>
+                  
+                  {/* NEW: Wildcard search inside the file */}
+                  {currentFolder.files.length > 0 && (
+                    <div className="relative w-full sm:w-64">
+                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Filter documents..."
+                        value={docSearchTerm}
+                        onChange={(e) => setDocSearchTerm(e.target.value)}
+                        className="w-full text-[11px] pl-8 pr-7 py-1.5 border border-slate-300 rounded-md focus:outline-hidden focus:ring-1 focus:ring-slate-400"
+                      />
+                      {docSearchTerm && (
+                        <button
+                          onClick={() => setDocSearchTerm('')}
+                          className="absolute right-2 top-1.5 text-slate-400 hover:text-slate-600"
+                          title="Clear filter"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {currentFolder.files.length === 0 ? (
@@ -436,9 +479,17 @@ export const FolderManagerView: React.FC<FolderManagerViewProps> = ({
                     <p className="font-semibold text-slate-700">No documents in this file yet</p>
                     <p className="mt-1">Documents appear here when letters are filed into this file from the All Records tab.</p>
                   </div>
+                ) : filteredDocuments.length === 0 ? (
+                  <div className="p-12 text-center text-slate-400 text-xs">
+                    <Search className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="font-semibold text-slate-700">No documents matched "{docSearchTerm}"</p>
+                    <button onClick={() => setDocSearchTerm('')} className="mt-2 text-emerald-700 hover:underline">
+                      Clear search
+                    </button>
+                  </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
-                    {currentFolder.files.map((file) => (
+                    {filteredDocuments.map((file) => (
                       <div
                         key={file.id}
                         className="p-3.5 hover:bg-slate-50/80 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
