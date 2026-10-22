@@ -870,14 +870,14 @@ def create_correspondence():
         updated_by_user_id=g.current_user.id,
     )
     db.session.add(rec)
-    # Calculate starting page number based on existing documents IN THIS FOLDER
-    _folder_id = data.get("folderId")
+    # Calculate starting page number based on existing documents IN THIS FILE NUMBER
+    _file_num = data.get("fileNumber")
     _start_page = 1
-    if _folder_id:
-        # Find the highest page_number currently in this folder
+    if _file_num:
+        # Find the highest page_number currently in this file number (e.g. MCDE/30)
         _max_in_folder = db.session.query(db.func.max(AttachedDocument.page_number)) \
             .join(Correspondence, AttachedDocument.correspondence_id == Correspondence.id) \
-            .filter(Correspondence.folder_id == _folder_id).scalar()
+            .filter(Correspondence.file_number == _file_num).scalar()
         if _max_in_folder:
             _start_page = _max_in_folder + 1
 
