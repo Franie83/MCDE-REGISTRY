@@ -870,7 +870,18 @@ def create_correspondence():
         updated_by_user_id=g.current_user.id,
     )
     db.session.add(rec)
-    for idx, d in enumerate(data.get("documents", []) or [], start=1):
+    # Calculate starting page number based on existing documents IN THIS FOLDER
+    _folder_id = data.get("folderId")
+    _start_page = 1
+    if _folder_id:
+        # Find the highest page_number currently in this folder
+        _max_in_folder = db.session.query(db.func.max(AttachedDocument.page_number)) \
+            .join(Correspondence, AttachedDocument.correspondence_id == Correspondence.id) \
+            .filter(Correspondence.folder_id == _folder_id).scalar()
+        if _max_in_folder:
+            _start_page = _max_in_folder + 1
+
+    for idx, d in enumerate(data.get("documents", []) or [], start=_start_page):
         db.session.add(AttachedDocument(
             id=d.get("id") or f"doc-{uuid.uuid4().hex[:12]}",
             correspondence_id=rec_id, name=d.get("name", "document"),
