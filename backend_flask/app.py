@@ -137,7 +137,7 @@ class User(db.Model):
 
     def to_dict(self):
         return {
-            "id": self.id,
+            "id": self.id, "page_number": self.page_number,
             "username": self.username,
             "fullName": self.full_name,
             "email": self.email,
@@ -183,7 +183,7 @@ class Correspondence(db.Model):
 
     def to_dict(self):
         return {
-            "id": self.id, "registryNo": self.registry_no, "type": self.type,
+            "id": self.id, "page_number": self.page_number, "registryNo": self.registry_no, "type": self.type,
             "recordDate": self.record_date,
             "dateOnCorrespondence": self.date_on_correspondence,
             "source": self.source, "target": self.target, "recipient": self.recipient, "title": self.title,
@@ -214,10 +214,11 @@ class AttachedDocument(db.Model):
     preview_content = db.Column(db.Text)
     uploaded_at = db.Column(db.DateTime, default=_now_utc, nullable=False)
     uploaded_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    page_number = db.Column(db.Integer, nullable=True)
 
     def to_dict(self):
         return {
-            "id": self.id, "name": self.name, "size": self.size, "type": self.mime_type,
+            "id": self.id, "page_number": self.page_number, "name": self.name, "size": self.size, "type": self.mime_type,
             "dataUrl": self.cloudinary_url, "cloudinaryUrl": self.cloudinary_url,
             "cloudinaryPublicId": self.cloudinary_public_id,
             "previewContent": self.preview_content,
@@ -243,7 +244,7 @@ class ArchiveFolder(db.Model):
 
     def to_dict(self):
         return {
-            "id": self.id, "name": self.name, "folderCode": self.folder_code,
+            "id": self.id, "page_number": self.page_number, "name": self.name, "folderCode": self.folder_code,
             "department": self.department, "description": self.description,
             "physicalLocation": self.physical_location, "colorTag": self.color_tag,
             "files": [f.to_dict() for f in self.files],
@@ -267,10 +268,11 @@ class FolderFile(db.Model):
     correspondence_ref = db.Column(db.String(120))
     uploaded_at = db.Column(db.DateTime, default=_now_utc, nullable=False)
     uploaded_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    page_number = db.Column(db.Integer, nullable=True)
 
     def to_dict(self):
         return {
-            "id": self.id, "name": self.name, "size": self.size, "type": self.mime_type,
+            "id": self.id, "page_number": self.page_number, "name": self.name, "size": self.size, "type": self.mime_type,
             "dataUrl": self.cloudinary_url, "cloudinaryUrl": self.cloudinary_url,
             "cloudinaryPublicId": self.cloudinary_public_id,
             "previewContent": self.preview_content, "notes": self.notes,
@@ -881,6 +883,18 @@ def create_correspondence():
     audit("CREATE_CORRESPONDENCE", "correspondence", rec_id, rec.registry_no,
           rec.title, f"Logged new {ctype} mail. File: {rec.file_number}.")
     db.session.commit()
+    # Assign sequential page numbers to newly attached documents
+    docs = data.get("documents", [])
+    if docs:
+        max_page = db.session.query(db.func.max(AttachedDocument.page_number)).filter_by(correspondence_id=rec.id).scalar() or 0
+        for i, d in enumerate(docs):
+            doc_id = d.get("id")
+            if doc_id:
+                doc = db.session.get(AttachedDocument, doc_id)
+                if doc:
+                    doc.page_number = max_page + i + 1
+                    doc.correspondence_id = rec.id
+        db.session.commit()
     return jsonify({"message": "Correspondence recorded", "record": rec.to_dict()}), 201
 
 
@@ -921,6 +935,20 @@ def update_correspondence(rec_id):
     audit("UPDATE_CORRESPONDENCE", "correspondence", rec_id, rec.registry_no,
           rec.title, f"Updated {rec.type} letter. Status: {rec.status}.")
     db.session.commit()
+    # Assign sequential page numbers to newly attached/updated documents
+    docs = data.get("documents", [])
+    if docs:
+        max_page = db.session.query(db.func.max(AttachedDocument.page_number)).filter_by(correspondence_id=rec.id).scalar() or 0
+        for i, d in enumerate(docs):
+            doc_id = d.get("id")
+            if doc_id:
+                doc = db.session.get(AttachedDocument, doc_id)
+                if doc:
+                    # Only assign if it doesn't have one yet (so edits don't renumber existing pages)
+                    if not doc.page_number:
+                        doc.page_number = max_page + i + 1
+                    doc.correspondence_id = rec.id
+        db.session.commit()
     return jsonify({"message": "Updated", "record": rec.to_dict()})
 
 
