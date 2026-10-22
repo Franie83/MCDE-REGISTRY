@@ -70,9 +70,17 @@ JWT_EXPIRY = timedelta(days=3650)
 CLOUDINARY_FOLDER = os.environ.get("CLOUDINARY_FOLDER", "edo_mocde_registry")
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 
-CORS_ORIGINS = [
+# Always allow the canonical alias + all Vercel deploy subdomains by regex.
+# Extra origins can still be added via the CORS_ORIGINS env var (comma-separated).
+_env_extra = [
     o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()
-] or ["https://mcde-registry.vercel.app", "http://localhost:3000"]
+]
+CORS_ORIGINS = [
+    r"https://mcde-registry.*\.vercel\.app",
+    "https://mcde-registry.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+] + _env_extra
 
 SEED_PASSWORD = "ChangeMe!2026"
 
