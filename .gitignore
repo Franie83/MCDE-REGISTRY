@@ -47,3 +47,4 @@ deploy_*.py
 ~$*.xlsx
 ~$*.pptx
 _diagnose_*.py
+.vercel
