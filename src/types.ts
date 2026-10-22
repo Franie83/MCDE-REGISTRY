@@ -11,6 +11,7 @@ export type TreatmentStatus =
 
 export interface AttachedDocument {
   id: string;
+  page_number?: number;
   name: string;
   size: number;
   type: string;

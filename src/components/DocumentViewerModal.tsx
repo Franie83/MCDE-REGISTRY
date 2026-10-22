@@ -264,6 +264,7 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                     >
                       <FileText className={`w-4 h-4 shrink-0 mt-0.5 ${selectedDocIndex === idx ? 'text-slate-200' : 'text-slate-400'}`} />
                       <div className="min-w-0 flex-1">
+                        <span className="inline-flex items-center justify-center text-[10px] font-bold bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded mr-2 shrink-0">p. {doc.page_number || '?'}</span>
                         <p className="font-medium truncate">{doc.name}</p>
                         <p className={`text-[10px] font-mono mt-0.5 ${selectedDocIndex === idx ? 'text-slate-300' : 'text-slate-400'}`}>
                           {formatFileSize(doc.size)}
