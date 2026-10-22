@@ -46,7 +46,7 @@ export const CorrespondenceTable: React.FC<CorrespondenceTableProps> = ({
   const [sortField, setSortField] = useState<'recordDate' | 'dateOnCorrespondence' | 'registryNo'>('recordDate');
   const [sortAsc, setSortAsc] = useState<boolean>(false);
 
-  // Extract unique file numbers for quick dropdown filter
+  // Extract unique document numbers for quick dropdown filter
   const uniqueFileNumbers = useMemo(() => {
     return Array.from(new Set(records.map(r => r.fileNumber.trim()).filter(Boolean)));
   }, [records]);
@@ -62,7 +62,7 @@ export const CorrespondenceTable: React.FC<CorrespondenceTableProps> = ({
       if (selectedStatusFilter !== 'all' && item.status !== selectedStatusFilter) {
         return false;
       }
-      // File number filter
+      // Document number filter
       if (selectedFileFilter !== 'all' && item.fileNumber !== selectedFileFilter) {
         return false;
       }
@@ -167,7 +167,7 @@ export const CorrespondenceTable: React.FC<CorrespondenceTableProps> = ({
             <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by File Number, Subject, Source, Target, or Document name..."
+              placeholder="Search by Document Number, Subject, Source, Target, or Document name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full text-xs pl-9 pr-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-hidden focus:ring-1 focus:ring-slate-400"
@@ -182,7 +182,7 @@ export const CorrespondenceTable: React.FC<CorrespondenceTableProps> = ({
             )}
           </div>
 
-          {/* Filter by File Number */}
+          {/* Filter by Document Number */}
           <div className="sm:col-span-3">
             <select
               value={selectedFileFilter}
@@ -239,7 +239,7 @@ export const CorrespondenceTable: React.FC<CorrespondenceTableProps> = ({
               >
                 Date on Letter {sortField === 'dateOnCorrespondence' && (sortAsc ? '↑' : '↓')}
               </th>
-              <th className="py-3 px-4 whitespace-nowrap">File Number</th>
+              <th className="py-3 px-4 whitespace-nowrap">Document Number</th>
               <th className="py-3 px-4 w-[280px]">Title / Subject</th>
               <th className="py-3 px-4 w-[200px]">Source / Target</th>
               <th className="py-3 px-4 whitespace-nowrap w-[100px]">Documents</th>
@@ -302,7 +302,7 @@ export const CorrespondenceTable: React.FC<CorrespondenceTableProps> = ({
                       {rec.dateOnCorrespondence}
                     </td>
 
-                    {/* File Number */}
+                    {/* Document Number */}
                     <td className="py-3 px-4 whitespace-nowrap font-mono font-semibold text-slate-800">
                       {rec.fileNumber}
                     </td>

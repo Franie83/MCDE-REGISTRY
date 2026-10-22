@@ -45,6 +45,7 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
   const [departments, setDepartments] = useState<string[]>([]);
   const [customRecipient, setCustomRecipient] = useState<string>('');
   const [title, setTitle] = useState<string>('');
+  const [documentNumber, setDocumentNumber] = useState<string>('');
 
   const [selectedFolderId, setSelectedFolderId] = useState<string>('');
   const [folderSearchQuery, setFolderSearchQuery] = useState<string>('');
@@ -100,9 +101,10 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
       setLetterBody((editingRecord as any).letterBody || '');
       setSignatory((editingRecord as any).signatory || '');
       setTitle(editingRecord.title);
+      setDocumentNumber(editingRecord.fileNumber || '');
 
       const matched = folders.find(
-        (f) => f.folderCode === editingRecord.fileNumber || f.id === editingRecord.folderId,
+        (f) => f.id === editingRecord.folderId,
       );
       if (matched) setSelectedFolderId(matched.id);
       else if (folders.length > 0) setSelectedFolderId(folders[0].id);
@@ -119,6 +121,7 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
       setLetterBody('');
       setSignatory('');
       setTitle('');
+      setDocumentNumber('');
       setSelectedFolderId('');
       setFolderSearchQuery('');
       setIsFolderPickerOpen(false);
@@ -133,6 +136,10 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
 
   const handleSelectFolder = (folder: ArchiveFolder) => {
     setSelectedFolderId(folder.id);
+    // Auto-fill file number from the folder code if the user hasn't typed one
+    if (!documentNumber.trim()) {
+      setDocumentNumber(folder.folderCode);
+    }
     setIsFolderPickerOpen(false);
     setFolderSearchQuery('');
     setErrors((prev) => {
@@ -214,6 +221,9 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
     if (!title.trim()) {
       newErrors.title = 'Title / Subject of correspondence is required';
     }
+    if (!documentNumber.trim()) {
+      newErrors.documentNumber = 'File Number is required';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -278,7 +288,7 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
       letterBody: letterBody.trim() || undefined,
       signatory: signatory.trim() || undefined,
       title: title.trim(),
-      fileNumber: targetFolder ? targetFolder.folderCode : 'EDSG/MOCDE/GEN/2026',
+      fileNumber: documentNumber.trim() || (targetFolder ? targetFolder.folderCode : 'EDSG/MOCDE/GEN/2026'),
       folderId: selectedFolderId,
       category: targetFolder?.department,
       priority: 'normal',
@@ -530,6 +540,29 @@ export const CorrespondenceFormModal: React.FC<CorrespondenceFormModalProps> = (
                   )}
                 </div>
               </div>
+            )}
+          </div>
+
+          {/* FILE_NUMBER_FIELD_JSX ? editable and required */}
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">
+              Document Number <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={documentNumber}
+              onChange={(e) => setDocumentNumber(e.target.value)}
+              placeholder="e.g. EDSG/MOCDE/DOC/2026/008"
+              className={
+                'w-full text-sm px-3 py-1.5 border rounded-lg bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-400 font-mono ' +
+                (errors.documentNumber ? 'border-red-400' : 'border-slate-300')
+              }
+            />
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              The dossier reference for this document. Auto-filled from the folder but you can edit it.
+            </p>
+            {errors.documentNumber && (
+              <p className="text-[11px] text-red-600 mt-1">{errors.documentNumber}</p>
             )}
           </div>
 
