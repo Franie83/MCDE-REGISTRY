@@ -137,7 +137,7 @@ class User(db.Model):
 
     def to_dict(self):
         return {
-            "id": self.id, "page_number": self.page_number,
+            "id": self.id,
             "username": self.username,
             "fullName": self.full_name,
             "email": self.email,
@@ -183,7 +183,7 @@ class Correspondence(db.Model):
 
     def to_dict(self):
         return {
-            "id": self.id, "page_number": self.page_number, "registryNo": self.registry_no, "type": self.type,
+            "id": self.id, "registryNo": self.registry_no, "type": self.type,
             "recordDate": self.record_date,
             "dateOnCorrespondence": self.date_on_correspondence,
             "source": self.source, "target": self.target, "recipient": self.recipient, "title": self.title,
@@ -244,7 +244,7 @@ class ArchiveFolder(db.Model):
 
     def to_dict(self):
         return {
-            "id": self.id, "page_number": self.page_number, "name": self.name, "folderCode": self.folder_code,
+            "id": self.id, "name": self.name, "folderCode": self.folder_code,
             "department": self.department, "description": self.description,
             "physicalLocation": self.physical_location, "colorTag": self.color_tag,
             "files": [f.to_dict() for f in self.files],
@@ -870,7 +870,7 @@ def create_correspondence():
         updated_by_user_id=g.current_user.id,
     )
     db.session.add(rec)
-    for d in data.get("documents", []) or []:
+    for idx, d in enumerate(data.get("documents", []) or [], start=1):
         db.session.add(AttachedDocument(
             id=d.get("id") or f"doc-{uuid.uuid4().hex[:12]}",
             correspondence_id=rec_id, name=d.get("name", "document"),
@@ -879,22 +879,11 @@ def create_correspondence():
             cloudinary_public_id=d.get("cloudinaryPublicId") or "",
             preview_content=d.get("previewContent"),
             uploaded_by_user_id=g.current_user.id,
+            page_number=idx,
         ))
     audit("CREATE_CORRESPONDENCE", "correspondence", rec_id, rec.registry_no,
           rec.title, f"Logged new {ctype} mail. File: {rec.file_number}.")
     db.session.commit()
-    # Assign sequential page numbers to newly attached documents
-    docs = data.get("documents", [])
-    if docs:
-        max_page = db.session.query(db.func.max(AttachedDocument.page_number)).filter_by(correspondence_id=rec.id).scalar() or 0
-        for i, d in enumerate(docs):
-            doc_id = d.get("id")
-            if doc_id:
-                doc = db.session.get(AttachedDocument, doc_id)
-                if doc:
-                    doc.page_number = max_page + i + 1
-                    doc.correspondence_id = rec.id
-        db.session.commit()
     return jsonify({"message": "Correspondence recorded", "record": rec.to_dict()}), 201
 
 
@@ -935,20 +924,6 @@ def update_correspondence(rec_id):
     audit("UPDATE_CORRESPONDENCE", "correspondence", rec_id, rec.registry_no,
           rec.title, f"Updated {rec.type} letter. Status: {rec.status}.")
     db.session.commit()
-    # Assign sequential page numbers to newly attached/updated documents
-    docs = data.get("documents", [])
-    if docs:
-        max_page = db.session.query(db.func.max(AttachedDocument.page_number)).filter_by(correspondence_id=rec.id).scalar() or 0
-        for i, d in enumerate(docs):
-            doc_id = d.get("id")
-            if doc_id:
-                doc = db.session.get(AttachedDocument, doc_id)
-                if doc:
-                    # Only assign if it doesn't have one yet (so edits don't renumber existing pages)
-                    if not doc.page_number:
-                        doc.page_number = max_page + i + 1
-                    doc.correspondence_id = rec.id
-        db.session.commit()
     return jsonify({"message": "Updated", "record": rec.to_dict()})
 
 
