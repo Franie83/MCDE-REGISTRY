@@ -469,6 +469,16 @@ from admin_routes import make_admin_blueprint
 def init_db():
     db.create_all()
 
+    # ── auto-migration: safely add columns create_all() won't touch ──
+    from sqlalchemy import text as _sqltext
+    try:
+        with db.engine.connect() as _conn:
+            _conn.execute(_sqltext("ALTER TABLE attached_documents ADD COLUMN IF NOT EXISTS page_number INTEGER"))
+            _conn.commit()
+            print("[migration] attached_documents.page_number ensured")
+    except Exception as _e:
+        print(f"[migration] failed: {_e}")
+
     if User.query.count() == 0:
         for spec in seed_data.SEED_USERS:
             db.session.add(User(
@@ -935,6 +945,22 @@ def update_correspondence(rec_id):
     audit("UPDATE_CORRESPONDENCE", "correspondence", rec_id, rec.registry_no,
           rec.title, f"Updated {rec.type} letter. Status: {rec.status}.")
     db.session.commit()
+
+    # ── assign page numbers to attached docs (update) ──
+    try:
+        _docs = data.get("documents", []) if isinstance(data, dict) else []
+        if _docs:
+            _max = db.session.query(db.func.max(AttachedDocument.page_number)).filter_by(correspondence_id=rec.id).scalar() or 0
+            for _i, _d in enumerate(_docs):
+                _doc_id = _d.get("id") if isinstance(_d, dict) else None
+                if _doc_id:
+                    _doc = db.session.get(AttachedDocument, _doc_id)
+                    if _doc and not _doc.page_number:
+                        _doc.page_number = _max + _i + 1
+                        _doc.correspondence_id = rec.id
+            db.session.commit()
+    except Exception as _e:
+        print(f"[page_number update] failed: {_e}")
     # Assign sequential page numbers to newly attached/updated documents
     docs = data.get("documents", [])
     if docs:
